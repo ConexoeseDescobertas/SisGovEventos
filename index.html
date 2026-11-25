@@ -350,11 +350,11 @@
       </section>
 
       <!-- ========================================================= -->
-      <!-- ADMIN 3: PORTARIA & CONTROLE DE PRESENÇA                  -->
+      <!-- ADMIN 3: PORTARIA, FILTROS & CONTROLE DE PRESENÇA         -->
       <!-- ========================================================= -->
       <section id="sec-portaria" class="hidden max-w-5xl mx-auto space-y-6">
-        <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
-          <div class="flex flex-col md:flex-row justify-between items-center gap-4 mb-4">
+        <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 space-y-4">
+          <div class="flex flex-col md:flex-row justify-between items-center gap-4">
             <div>
               <h2 class="font-bold text-lg text-acre"><i class="fa-solid fa-qrcode mr-1.5"></i>Portaria & Check-in por QR Code / CPF</h2>
               <p id="portaria-regra-info" class="text-xs text-slate-600 font-semibold mt-0.5"></p>
@@ -366,17 +366,39 @@
             <input type="text" id="portaria-busca-rapida" placeholder="Bipe o QR Code (EVT-...) ou digite CPF / Nome..." class="flex-1 border-2 border-green-700 rounded-lg px-4 py-2.5 text-sm font-semibold" />
             <button type="submit" class="bg-acre hover:bg-acre-dark text-white font-bold px-6 py-2.5 rounded-lg text-sm">Registrar Presença (+1)</button>
           </form>
+
+          <!-- Barra de Filtros de Status -->
+          <div class="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-100">
+            <div class="flex flex-wrap gap-1.5">
+              <button type="button" id="filtro-TODOS" onclick="definirFiltroPortaria('TODOS')" class="filtro-portaria-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-acre text-white transition">
+                Todos (<span id="cnt-todos">0</span>)
+              </button>
+              <button type="button" id="filtro-PRESENTES" onclick="definirFiltroPortaria('PRESENTES')" class="filtro-portaria-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 transition">
+                <i class="fa-solid fa-user-check mr-1 text-emerald-700"></i> Presentes (<span id="cnt-presentes">0</span>)
+              </button>
+              <button type="button" id="filtro-AUSENTES" onclick="definirFiltroPortaria('AUSENTES')" class="filtro-portaria-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 transition">
+                <i class="fa-solid fa-user-xmark mr-1 text-red-600"></i> Ausentes (<span id="cnt-ausentes">0</span>)
+              </button>
+              <button type="button" id="filtro-APTOS" onclick="definirFiltroPortaria('APTOS')" class="filtro-portaria-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 transition">
+                <i class="fa-solid fa-award mr-1 text-amber-600"></i> Aptos ao Certificado (<span id="cnt-aptos">0</span>)
+              </button>
+            </div>
+
+            <div class="w-full sm:w-64">
+              <input type="text" id="portaria-filtro-texto" oninput="renderizarTabelaPortaria()" placeholder="Filtrar na lista por nome ou órgão..." class="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-xs" />
+            </div>
+          </div>
         </div>
 
         <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
           <div class="bg-slate-800 text-white px-5 py-3 flex flex-wrap justify-between items-center gap-2 text-xs">
-            <span id="portaria-resumo-contagem" class="font-bold">Inscritos: 0 | Aptos: 0</span>
+            <span id="portaria-resumo-contagem" class="font-bold">Exibindo: 0 participante(s)</span>
             <div class="flex gap-2">
               <button onclick="enfileirarCertificadosEmMassa()" class="bg-amber-400 hover:bg-amber-300 text-slate-950 px-3 py-1 rounded font-bold">
                 <i class="fa-solid fa-layer-group mr-1"></i> Liberar Certificados em Massa
               </button>
               <button onclick="exportarCSVEvento()" class="bg-emerald-600 hover:bg-emerald-700 px-3 py-1 rounded font-semibold">
-                <i class="fa-solid fa-file-csv mr-1"></i> Exportar CSV
+                <i class="fa-solid fa-file-csv mr-1"></i> Exportar CSV (Filtro Atual)
               </button>
             </div>
           </div>
@@ -386,6 +408,7 @@
                 <tr>
                   <th class="py-2.5 px-4">Participante</th>
                   <th class="py-2.5 px-4">E-mail / CPF</th>
+                  <th class="py-2.5 px-4 text-center">Status</th>
                   <th class="py-2.5 px-4 text-center">Presenças</th>
                   <th class="py-2.5 px-4 text-center">Certificado</th>
                   <th class="py-2.5 px-4 text-center">Ação</th>
@@ -415,6 +438,7 @@
       let listaEventos = [];
       let participantesPortariaAtual = [];
       let participantesEditorAtual = [];
+      let filtroPortariaAtual = "TODOS";
 
       function limparCPF(cpf) {
         return cpf.replace(/\D/g, "");
@@ -901,12 +925,51 @@
       }
 
       // =========================================================
-      // PORTARIA & PRESENÇA
+      // PORTARIA, FILTROS & PRESENÇA
       // =========================================================
       function verificarAptidaoCertificado(participante, ev) {
         if (ev.regra_certificado === "CHECKIN") return participante.presente === true;
         if (ev.regra_certificado === "PRESENCA_MINIMA") return participante.presencas_qtd >= (ev.presenca_minima || 1);
         return participante.presente === true && ev.certificado_liberado === true;
+      }
+
+      function definirFiltroPortaria(filtro) {
+        filtroPortariaAtual = filtro;
+        ["TODOS", "PRESENTES", "AUSENTES", "APTOS"].forEach((key) => {
+          const btn = document.getElementById("filtro-" + key);
+          if (!btn) return;
+          if (key === filtro) {
+            btn.className = "filtro-portaria-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-acre text-white transition";
+          } else {
+            btn.className = "filtro-portaria-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 transition";
+          }
+        });
+        renderizarTabelaPortaria();
+      }
+
+      function obterParticipantesFiltrados() {
+        const eventoId = Number(document.getElementById("portaria-evento-select").value);
+        const ev = listaEventos.find((e) => e.id === eventoId);
+        const termoBusca = (document.getElementById("portaria-filtro-texto")?.value || "").trim().toUpperCase();
+
+        return participantesPortariaAtual.filter((p) => {
+          const apto = ev ? verificarAptidaoCertificado(p, ev) : false;
+
+          if (filtroPortariaAtual === "PRESENTES" && !p.presente) return false;
+          if (filtroPortariaAtual === "AUSENTES" && p.presente) return false;
+          if (filtroPortariaAtual === "APTOS" && !apto) return false;
+
+          if (termoBusca) {
+            const match =
+              p.nome_completo.toUpperCase().includes(termoBusca) ||
+              (p.orgao_instituicao || "").toUpperCase().includes(termoBusca) ||
+              p.cpf.includes(limparCPF(termoBusca)) ||
+              p.protocolo.toUpperCase().includes(termoBusca);
+            if (!match) return false;
+          }
+
+          return true;
+        });
       }
 
       async function carregarListaPortaria() {
@@ -929,21 +992,60 @@
           .order("nome_completo");
 
         participantesPortariaAtual = data || [];
-        const aptos = participantesPortariaAtual.filter((p) => verificarAptidaoCertificado(p, ev)).length;
-        document.getElementById("portaria-resumo-contagem").innerText =
-          `Inscritos: ${participantesPortariaAtual.length} | Aptos: ${aptos}`;
 
-        document.getElementById("tabela-portaria").innerHTML = participantesPortariaAtual
+        const totalTodos = participantesPortariaAtual.length;
+        const totalPresentes = participantesPortariaAtual.filter((p) => p.presente).length;
+        const totalAusentes = totalTodos - totalPresentes;
+        const totalAptos = participantesPortariaAtual.filter((p) => verificarAptidaoCertificado(p, ev)).length;
+
+        document.getElementById("cnt-todos").innerText = totalTodos;
+        document.getElementById("cnt-presentes").innerText = totalPresentes;
+        document.getElementById("cnt-ausentes").innerText = totalAusentes;
+        document.getElementById("cnt-aptos").innerText = totalAptos;
+
+        renderizarTabelaPortaria();
+      }
+
+      function renderizarTabelaPortaria() {
+        const eventoId = Number(document.getElementById("portaria-evento-select").value);
+        const ev = listaEventos.find((e) => e.id === eventoId);
+        if (!ev) return;
+
+        const filtrados = obterParticipantesFiltrados();
+        document.getElementById("portaria-resumo-contagem").innerText =
+          `Exibindo: ${filtrados.length} de ${participantesPortariaAtual.length} inscrito(s)`;
+
+        if (filtrados.length === 0) {
+          document.getElementById("tabela-portaria").innerHTML = `
+            <tr>
+              <td colspan="6" class="py-6 px-4 text-center text-slate-500">
+                Nenhum participante encontrado para o filtro selecionado.
+              </td>
+            </tr>`;
+          return;
+        }
+
+        document.getElementById("tabela-portaria").innerHTML = filtrados
           .map((p) => {
             const apto = verificarAptidaoCertificado(p, ev);
             return `<tr>
-              <td class="py-2.5 px-4 font-semibold">${p.nome_completo}<br><span class="text-[11px] text-slate-400 font-mono">${p.protocolo}</span></td>
+              <td class="py-2.5 px-4 font-semibold">
+                ${p.nome_completo}
+                <br><span class="text-[11px] text-slate-500">${p.orgao_instituicao} • <span class="font-mono text-slate-400">${p.protocolo}</span></span>
+              </td>
               <td class="py-2.5 px-4 text-xs">${p.email}<br><span class="font-mono text-slate-500">${p.cpf}</span></td>
+              <td class="py-2.5 px-4 text-center">
+                ${
+                  p.presente
+                    ? `<span class="bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded">Presente</span>`
+                    : `<span class="bg-red-100 text-red-700 font-semibold px-2 py-0.5 rounded">Ausente</span>`
+                }
+              </td>
               <td class="py-2.5 px-4 text-center font-bold">${p.presencas_qtd} / ${ev.encontros_totais}</td>
               <td class="py-2.5 px-4 text-center">
                 ${
                   apto
-                    ? `<span class="bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded">Liberado ${p.certificado_enviado ? "✓" : ""}</span>`
+                    ? `<span class="bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded">Apto ${p.certificado_enviado ? "✓" : ""}</span>`
                     : `<span class="bg-slate-100 text-slate-600 px-2 py-0.5 rounded">Pendente</span>`
                 }
               </td>
@@ -1054,15 +1156,20 @@
       }
 
       function exportarCSVEvento() {
-        if (participantesPortariaAtual.length === 0) return;
+        const listaExportar = obterParticipantesFiltrados();
+        if (listaExportar.length === 0) {
+          alert("Não há participantes no filtro atual para exportar.");
+          return;
+        }
         const linhas = [
-          ["Nome", "CPF", "Email", "Orgao", "Protocolo", "Presencas", "Codigo Certificado"],
-          ...participantesPortariaAtual.map((p) => [
+          ["Nome", "CPF", "Email", "Orgao", "Protocolo", "Status", "Presencas", "Codigo Certificado"],
+          ...listaExportar.map((p) => [
             `"${p.nome_completo}"`,
             p.cpf,
             p.email,
             `"${p.orgao_instituicao}"`,
             p.protocolo,
+            p.presente ? "Presente" : "Ausente",
             p.presencas_qtd,
             p.codigo_certificado,
           ]),
@@ -1071,7 +1178,7 @@
         const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
         const link = document.createElement("a");
         link.href = URL.createObjectURL(blob);
-        link.download = "participantes_sisgoveventos.csv";
+        link.download = `participantes_${filtroPortariaAtual.toLowerCase()}_sisgoveventos.csv`;
         link.click();
       }
 
