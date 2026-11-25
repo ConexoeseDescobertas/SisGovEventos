@@ -74,15 +74,15 @@
         </button>
       </div>
 
-      <!-- Menu Interno (Visível apenas quando autenticado como Admin) -->
+      <!-- Menu Interno (Visível apenas após login administrativo) -->
       <nav id="nav-admin" class="hidden bg-acre-dark/80 border-t border-white/10">
         <div class="max-w-6xl mx-auto px-4 flex flex-wrap items-center justify-between gap-2">
           <div class="flex overflow-x-auto gap-1">
             <button id="tab-inscricao" onclick="mudarAba('inscricao')" class="aba-btn px-4 py-3 text-xs font-bold border-b-4 border-yellow-400 text-yellow-300 whitespace-nowrap">
-              <i class="fa-solid fa-user-plus mr-1"></i> Tela do Cidadão (Inscrição)
+              <i class="fa-solid fa-user-plus mr-1"></i> Tela do Cidadão
             </button>
             <button id="tab-gestao" onclick="mudarAba('gestao')" class="aba-btn px-4 py-3 text-xs font-semibold border-b-4 border-transparent text-green-100 hover:text-white whitespace-nowrap">
-              <i class="fa-solid fa-sliders mr-1"></i> Configurar & Confirmar Eventos
+              <i class="fa-solid fa-sliders mr-1"></i> Configurar Eventos
             </button>
             <button id="tab-certificado" onclick="mudarAba('certificado')" class="aba-btn px-4 py-3 text-xs font-semibold border-b-4 border-transparent text-green-100 hover:text-white whitespace-nowrap">
               <i class="fa-solid fa-award mr-1"></i> Modelos de Certificado
@@ -92,7 +92,7 @@
             </button>
           </div>
           <button onclick="sairAdmin()" class="text-xs text-red-200 hover:text-white font-semibold py-2">
-            <i class="fa-solid fa-right-from-bracket mr-1"></i> Sair do Modo Admin
+            <i class="fa-solid fa-right-from-bracket mr-1"></i> Sair
           </button>
         </div>
       </nav>
@@ -125,7 +125,7 @@
         <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
           <div class="bg-acre text-white px-6 py-4">
             <h2 class="text-lg font-bold"><i class="fa-solid fa-file-signature mr-2"></i>Formulário de Inscrição</h2>
-            <p class="text-xs text-green-100 mt-0.5">Preencha seus dados para confirmar participação nos eventos abertos da SEGOV/AC.</p>
+            <p class="text-xs text-green-100 mt-0.5">Selecione o evento disponível e preencha seus dados para confirmar sua vaga.</p>
           </div>
 
           <form id="form-inscricao" onsubmit="realizarInscricao(event)" class="p-6 space-y-4">
@@ -197,24 +197,13 @@
       </section>
 
       <!-- ========================================================= -->
-      <!-- ADMIN 1: CONFIGURAR, EDITAR E CONFIRMAR EVENTOS           -->
+      <!-- ADMIN 1: CONFIGURAR E CONFIRMAR EVENTOS                   -->
       <!-- ========================================================= -->
       <section id="sec-gestao" class="hidden max-w-5xl mx-auto space-y-6">
-        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex flex-wrap justify-between items-center gap-2">
-          <div>
-            <h3 class="font-bold text-sm text-slate-900"><i class="fa-solid fa-paper-plane mr-1.5 text-acre"></i> Fila de Disparo Automático em Massa</h3>
-            <p class="text-xs text-slate-500">Registros gerados automaticamente para envio em massa por e-mail.</p>
-          </div>
-          <div class="flex items-center gap-3">
-            <span id="resumo-fila-emails" class="text-xs font-semibold text-slate-700 bg-slate-100 px-3 py-1.5 rounded">Pendentes: 0 | Enviados: 0</span>
-            <button type="button" onclick="atualizarResumoFila()" class="bg-slate-800 text-white text-xs font-bold px-3 py-1.5 rounded">Atualizar</button>
-          </div>
-        </div>
-
         <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
           <div class="bg-acre text-white px-6 py-4">
-            <h2 class="font-bold text-base"><i class="fa-solid fa-calendar-plus mr-1.5"></i>Criar Novo Evento Interno</h2>
-            <p class="text-xs text-green-100">Por padrão, o evento nasce como <strong>Rascunho (Não visível ao cidadão)</strong> até você clicar em <strong>Confirmar p/ Cidadão</strong>.</p>
+            <h2 class="font-bold text-base"><i class="fa-solid fa-calendar-plus mr-1.5"></i>Cadastrar Novo Evento Interno</h2>
+            <p class="text-xs text-green-100">Salve como rascunho para editar o certificado antes ou marque para liberar imediatamente ao cidadão.</p>
           </div>
 
           <form onsubmit="criarNovoEvento(event)" class="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -262,7 +251,7 @@
             </div>
             <div class="md:col-span-2 flex items-center gap-2">
               <input type="checkbox" id="ev-confirmar-ja" class="w-4 h-4 accent-green-700" />
-              <label for="ev-confirmar-ja" class="text-xs font-bold text-slate-700">Já confirmar e disponibilizar para inscrição do cidadão ao salvar</label>
+              <label for="ev-confirmar-ja" class="text-xs font-bold text-slate-700">Confirmar e liberar inscrição para o cidadão imediatamente</label>
             </div>
             <div class="md:col-span-2">
               <button type="submit" class="bg-acre hover:bg-acre-dark text-white font-bold px-6 py-2.5 rounded-lg text-sm transition">
@@ -273,7 +262,7 @@
         </div>
 
         <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-          <h3 class="font-bold text-base mb-4">Eventos Cadastrados (Confirmação para o Cidadão)</h3>
+          <h3 class="font-bold text-base mb-4">Eventos Cadastrados</h3>
           <div id="lista-eventos-gestao" class="space-y-3"></div>
         </div>
       </section>
@@ -285,7 +274,7 @@
         <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden no-print">
           <div class="bg-slate-800 text-white px-6 py-4">
             <h3 class="font-bold text-base"><i class="fa-solid fa-pen-ruler mr-1.5 text-yellow-400"></i> Modelos Prontos & Editáveis de Certificado</h3>
-            <p class="text-xs text-slate-300">Escolha o modelo, personalize o texto com variáveis dinâmicas e teste com o nome de qualquer inscrito.</p>
+            <p class="text-xs text-slate-300">Escolha o modelo, edite o texto com variáveis dinâmicas e visualize com o nome de qualquer inscrito.</p>
           </div>
 
           <div class="p-6 space-y-4">
@@ -314,12 +303,12 @@
               <div class="flex flex-wrap justify-between items-center mb-1 gap-2">
                 <label class="text-xs font-bold text-slate-700">Texto Editável do Certificado</label>
                 <div class="flex flex-wrap gap-1 text-[11px]">
-                  <button type="button" onclick="inserirTagTexto('{NOME}')" class="bg-emerald-100 text-emerald-900 px-2 py-0.5 rounded font-mono font-bold">+ {NOME}</button>
-                  <button type="button" onclick="inserirTagTexto('{CPF}')" class="bg-emerald-100 text-emerald-900 px-2 py-0.5 rounded font-mono font-bold">+ {CPF}</button>
-                  <button type="button" onclick="inserirTagTexto('{ORGAO}')" class="bg-emerald-100 text-emerald-900 px-2 py-0.5 rounded font-mono font-bold">+ {ORGAO}</button>
-                  <button type="button" onclick="inserirTagTexto('{EVENTO}')" class="bg-emerald-100 text-emerald-900 px-2 py-0.5 rounded font-mono font-bold">+ {EVENTO}</button>
-                  <button type="button" onclick="inserirTagTexto('{DATA}')" class="bg-emerald-100 text-emerald-900 px-2 py-0.5 rounded font-mono font-bold">+ {DATA}</button>
-                  <button type="button" onclick="inserirTagTexto('{CARGA_HORARIA}')" class="bg-emerald-100 text-emerald-900 px-2 py-0.5 rounded font-mono font-bold">+ {CARGA_HORARIA}</button>
+                  <button type="button" onclick="inserirTagTexto('{NOME}')" class="bg-emerald-100 text-emerald-900 px-2 py-0.5 rounded font-mono font-bold hover:bg-emerald-200">+ {NOME}</button>
+                  <button type="button" onclick="inserirTagTexto('{CPF}')" class="bg-emerald-100 text-emerald-900 px-2 py-0.5 rounded font-mono font-bold hover:bg-emerald-200">+ {CPF}</button>
+                  <button type="button" onclick="inserirTagTexto('{ORGAO}')" class="bg-emerald-100 text-emerald-900 px-2 py-0.5 rounded font-mono font-bold hover:bg-emerald-200">+ {ORGAO}</button>
+                  <button type="button" onclick="inserirTagTexto('{EVENTO}')" class="bg-emerald-100 text-emerald-900 px-2 py-0.5 rounded font-mono font-bold hover:bg-emerald-200">+ {EVENTO}</button>
+                  <button type="button" onclick="inserirTagTexto('{DATA}')" class="bg-emerald-100 text-emerald-900 px-2 py-0.5 rounded font-mono font-bold hover:bg-emerald-200">+ {DATA}</button>
+                  <button type="button" onclick="inserirTagTexto('{CARGA_HORARIA}')" class="bg-emerald-100 text-emerald-900 px-2 py-0.5 rounded font-mono font-bold hover:bg-emerald-200">+ {CARGA_HORARIA}</button>
                 </div>
               </div>
               <textarea id="editor-texto-cert" rows="3" onkeyup="atualizarPreviewEditor()" class="w-full border border-slate-300 rounded-lg p-3 text-sm"></textarea>
@@ -384,7 +373,7 @@
             <span id="portaria-resumo-contagem" class="font-bold">Inscritos: 0 | Aptos: 0</span>
             <div class="flex gap-2">
               <button onclick="enfileirarCertificadosEmMassa()" class="bg-amber-400 hover:bg-amber-300 text-slate-950 px-3 py-1 rounded font-bold">
-                <i class="fa-solid fa-layer-group mr-1"></i> Liberar & Enfileirar Certificados
+                <i class="fa-solid fa-layer-group mr-1"></i> Liberar Certificados em Massa
               </button>
               <button onclick="exportarCSVEvento()" class="bg-emerald-600 hover:bg-emerald-700 px-3 py-1 rounded font-semibold">
                 <i class="fa-solid fa-file-csv mr-1"></i> Exportar CSV
@@ -418,7 +407,7 @@
 
     <script>
       const SUPABASE_URL = "https://ioxlqbakmwssjovzuylc.supabase.co";
-      const SUPABASE_ANON_KEY = "sb_publishable_l-ntfbRnXftCg6T4TLGb2w_EOp0dixU";
+      const SUPABASE_ANON_KEY = "sb_publishable_91GKiISc_Huo5VEbluq8pw_QQPAU0uf";
       const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
       const SENHA_ADMIN = "SEGOV@2026";
@@ -457,7 +446,6 @@
         document.getElementById("btn-acesso-admin").classList.add("hidden");
         mudarAba("gestao");
         carregarListaPortaria();
-        atualizarResumoFila();
       }
 
       function sairAdmin() {
@@ -503,14 +491,13 @@
         if (error) return;
         listaEventos = data || [];
 
-        // Cidadão vê apenas eventos confirmados pela administração e ativos
         const eventosCidadao = listaEventos.filter((e) => e.ativo && e.confirmado_publico);
         const selectInsc = document.getElementById("insc-evento");
         selectInsc.innerHTML = eventosCidadao.length
           ? eventosCidadao
               .map((e) => `<option value="${e.id}">${e.tipo_evento}: ${e.titulo} (${e.data_evento})</option>`)
               .join("")
-          : '<option value="">Nenhum evento confirmado para inscrição no momento</option>';
+          : '<option value="">Nenhum evento disponível para inscrição no momento</option>';
         atualizarDetalhesEvento();
 
         const optionsTodos = listaEventos.map((e) => `<option value="${e.id}">${e.titulo}</option>`).join("");
@@ -608,7 +595,7 @@
         await enfileirarEmail(
           eventoId,
           data.id,
-          "CONFIRMACAO_QRCODE",
+          "CONFIRMACAO_INSCRICAO",
           email,
           nome,
           `Confirmação de Inscrição — ${ev.titulo}`,
@@ -697,8 +684,8 @@
         }
         alert(
           confirmado
-            ? "Evento salvo e já disponível na tela de inscrição do cidadão!"
-            : "Evento salvo como rascunho interno. Clique em 'Confirmar p/ Cidadão' quando quiser liberar a inscrição."
+            ? "Evento salvo e já disponível para inscrição!"
+            : "Evento salvo como rascunho interno."
         );
         e.target.reset();
         carregarEventos();
@@ -1061,18 +1048,9 @@
           await supabaseClient.from("participantes_eventos_segov").update({ certificado_enviado: true }).eq("id", p.id);
         }
 
-        alert(`Certificados liberados! ${aptosSemFila.length} registro(s) enfileirado(s) para envio em massa.`);
+        alert(`Certificados liberados! ${aptosSemFila.length} registro(s) enfileirado(s) para disparo em massa.`);
         await carregarEventos();
         carregarListaPortaria();
-        atualizarResumoFila();
-      }
-
-      async function atualizarResumoFila() {
-        const { data } = await supabaseClient.from("fila_emails_segov").select("status");
-        if (!data) return;
-        const pendentes = data.filter((x) => x.status === "PENDENTE").length;
-        const enviados = data.filter((x) => x.status === "ENVIADO").length;
-        document.getElementById("resumo-fila-emails").innerText = `Pendentes: ${pendentes} | Enviados: ${enviados}`;
       }
 
       function exportarCSVEvento() {
