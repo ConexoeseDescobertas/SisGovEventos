@@ -42,6 +42,78 @@
         @page { size: auto; margin: 10mm; }
       }
     </style>
+
+    <!-- SCRIPT 1: CONTROLE ADMINISTRATIVO BLINDADO (CARREGA ANTES DE QUALQUER API) -->
+    <script>
+      window.SENHA_ADMIN = "SEGOV@2026";
+      window.adminAutenticado = false;
+
+      window.abrirLoginAdmin = function () {
+        const modal = document.getElementById("modal-login-admin");
+        if (modal) {
+          modal.classList.remove("hidden");
+          const input = document.getElementById("senha-admin-input");
+          if (input) input.focus();
+        }
+      };
+
+      window.fecharLoginAdmin = function () {
+        const modal = document.getElementById("modal-login-admin");
+        if (modal) modal.classList.add("hidden");
+        const input = document.getElementById("senha-admin-input");
+        if (input) input.value = "";
+      };
+
+      window.autenticarAdmin = function (e) {
+        if (e) e.preventDefault();
+        const input = document.getElementById("senha-admin-input");
+        const digitada = (input ? input.value : "").trim();
+        if (digitada !== window.SENHA_ADMIN) {
+          alert("Senha administrativa incorreta.");
+          return;
+        }
+        window.adminAutenticado = true;
+        window.fecharLoginAdmin();
+        document.getElementById("nav-admin").classList.remove("hidden");
+        document.getElementById("btn-acesso-admin").classList.add("hidden");
+        window.mudarAba("gestao");
+        if (typeof window.carregarEventos === "function") window.carregarEventos();
+        if (typeof window.carregarListaPortaria === "function") window.carregarListaPortaria();
+      };
+
+      window.sairAdmin = function () {
+        window.adminAutenticado = false;
+        document.getElementById("nav-admin").classList.add("hidden");
+        document.getElementById("btn-acesso-admin").classList.remove("hidden");
+        window.mudarAba("inscricao");
+      };
+
+      window.mudarAba = function (aba) {
+        const abasAdmin = ["gestao", "certificado", "portaria"];
+        if (abasAdmin.includes(aba) && !window.adminAutenticado) {
+          window.abrirLoginAdmin();
+          return;
+        }
+
+        ["inscricao", "gestao", "certificado", "portaria"].forEach(function (id) {
+          const sec = document.getElementById("sec-" + id);
+          if (sec) sec.classList.add("hidden");
+          const btn = document.getElementById("tab-" + id);
+          if (btn) {
+            btn.classList.remove("border-yellow-400", "text-yellow-300", "font-bold");
+            btn.classList.add("border-transparent", "text-green-100", "font-semibold");
+          }
+        });
+
+        const secAtiva = document.getElementById("sec-" + aba);
+        if (secAtiva) secAtiva.classList.remove("hidden");
+        const ativo = document.getElementById("tab-" + aba);
+        if (ativo) {
+          ativo.classList.remove("border-transparent", "text-green-100", "font-semibold");
+          ativo.classList.add("border-yellow-400", "text-yellow-300", "font-bold");
+        }
+      };
+    </script>
   </head>
   <body class="text-slate-800 flex flex-col min-h-screen">
     <!-- Barra Institucional Superior -->
@@ -66,9 +138,10 @@
         </div>
 
         <button
+          type="button"
           id="btn-acesso-admin"
-          onclick="abrirLoginAdmin()"
-          class="bg-white/15 hover:bg-white/25 text-white text-xs font-bold px-4 py-2 rounded-lg border border-white/30 transition"
+          onclick="window.abrirLoginAdmin()"
+          class="bg-white/15 hover:bg-white/25 text-white text-xs font-bold px-4 py-2 rounded-lg border border-white/30 transition cursor-pointer"
         >
           <i class="fa-solid fa-lock mr-1.5"></i> Acesso Administrativo
         </button>
@@ -78,20 +151,20 @@
       <nav id="nav-admin" class="hidden bg-acre-dark/80 border-t border-white/10">
         <div class="max-w-6xl mx-auto px-4 flex flex-wrap items-center justify-between gap-2">
           <div class="flex overflow-x-auto gap-1">
-            <button id="tab-inscricao" onclick="mudarAba('inscricao')" class="aba-btn px-4 py-3 text-xs font-bold border-b-4 border-yellow-400 text-yellow-300 whitespace-nowrap">
+            <button type="button" id="tab-inscricao" onclick="window.mudarAba('inscricao')" class="aba-btn px-4 py-3 text-xs font-bold border-b-4 border-yellow-400 text-yellow-300 whitespace-nowrap">
               <i class="fa-solid fa-user-plus mr-1"></i> Tela do Cidadão
             </button>
-            <button id="tab-gestao" onclick="mudarAba('gestao')" class="aba-btn px-4 py-3 text-xs font-semibold border-b-4 border-transparent text-green-100 hover:text-white whitespace-nowrap">
+            <button type="button" id="tab-gestao" onclick="window.mudarAba('gestao')" class="aba-btn px-4 py-3 text-xs font-semibold border-b-4 border-transparent text-green-100 hover:text-white whitespace-nowrap">
               <i class="fa-solid fa-sliders mr-1"></i> Configurar Eventos
             </button>
-            <button id="tab-certificado" onclick="mudarAba('certificado')" class="aba-btn px-4 py-3 text-xs font-semibold border-b-4 border-transparent text-green-100 hover:text-white whitespace-nowrap">
+            <button type="button" id="tab-certificado" onclick="window.mudarAba('certificado')" class="aba-btn px-4 py-3 text-xs font-semibold border-b-4 border-transparent text-green-100 hover:text-white whitespace-nowrap">
               <i class="fa-solid fa-award mr-1"></i> Modelos de Certificado
             </button>
-            <button id="tab-portaria" onclick="mudarAba('portaria')" class="aba-btn px-4 py-3 text-xs font-semibold border-b-4 border-transparent text-green-100 hover:text-white whitespace-nowrap">
+            <button type="button" id="tab-portaria" onclick="window.mudarAba('portaria')" class="aba-btn px-4 py-3 text-xs font-semibold border-b-4 border-transparent text-green-100 hover:text-white whitespace-nowrap">
               <i class="fa-solid fa-clipboard-check mr-1"></i> Portaria & Presença
             </button>
           </div>
-          <button onclick="sairAdmin()" class="text-xs text-red-200 hover:text-white font-semibold py-2">
+          <button type="button" onclick="window.sairAdmin()" class="text-xs text-red-200 hover:text-white font-semibold py-2">
             <i class="fa-solid fa-right-from-bracket mr-1"></i> Sair
           </button>
         </div>
@@ -103,12 +176,12 @@
       <div class="bg-white rounded-xl shadow-xl max-w-sm w-full p-6 space-y-4">
         <div class="flex justify-between items-center border-b pb-2">
           <h3 class="font-bold text-base text-slate-900"><i class="fa-solid fa-shield-halved text-acre mr-1.5"></i> Área Interna — SEGOV/NUTIN</h3>
-          <button onclick="fecharLoginAdmin()" class="text-slate-400 hover:text-slate-700"><i class="fa-solid fa-xmark text-lg"></i></button>
+          <button type="button" onclick="window.fecharLoginAdmin()" class="text-slate-400 hover:text-slate-700"><i class="fa-solid fa-xmark text-lg"></i></button>
         </div>
-        <form onsubmit="autenticarAdmin(event)" class="space-y-3">
+        <form onsubmit="window.autenticarAdmin(event)" class="space-y-3">
           <div>
             <label class="block text-xs font-bold text-slate-700 mb-1">Senha Administrativa</label>
-            <input type="password" id="senha-admin-input" required placeholder="Digite a senha" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm" />
+            <input type="password" id="senha-admin-input" required placeholder="Digite SEGOV@2026" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm" />
           </div>
           <button type="submit" class="w-full bg-acre hover:bg-acre-dark text-white font-bold py-2.5 rounded-lg text-sm">
             Acessar Painel Interno
@@ -188,7 +261,7 @@
               <div id="cred-dados" class="mt-4 text-left text-xs space-y-1.5 border-t pt-3 text-slate-700"></div>
             </div>
             <div class="mt-4 flex justify-center gap-3 no-print">
-              <button onclick="imprimirArea('print-credencial')" class="bg-slate-800 hover:bg-slate-900 text-white font-semibold px-4 py-2 rounded-lg text-sm">
+              <button type="button" onclick="imprimirArea('print-credencial')" class="bg-slate-800 hover:bg-slate-900 text-white font-semibold px-4 py-2 rounded-lg text-sm">
                 <i class="fa-solid fa-print mr-1.5"></i> Imprimir / Salvar PDF
               </button>
             </div>
@@ -405,10 +478,10 @@
           <div class="bg-slate-800 text-white px-5 py-3 flex flex-wrap justify-between items-center gap-2 text-xs">
             <span id="portaria-resumo-contagem" class="font-bold">Exibindo: 0 participante(s)</span>
             <div class="flex gap-2">
-              <button onclick="enfileirarCertificadosEmMassa()" class="bg-amber-400 hover:bg-amber-300 text-slate-950 px-3 py-1 rounded font-bold">
+              <button type="button" onclick="enfileirarCertificadosEmMassa()" class="bg-amber-400 hover:bg-amber-300 text-slate-950 px-3 py-1 rounded font-bold">
                 <i class="fa-solid fa-layer-group mr-1"></i> Liberar Certificados em Massa
               </button>
-              <button onclick="exportarCSVEvento()" class="bg-emerald-600 hover:bg-emerald-700 px-3 py-1 rounded font-semibold">
+              <button type="button" onclick="exportarCSVEvento()" class="bg-emerald-600 hover:bg-emerald-700 px-3 py-1 rounded font-semibold">
                 <i class="fa-solid fa-file-csv mr-1"></i> Exportar CSV (Filtro Atual)
               </button>
             </div>
@@ -439,91 +512,45 @@
       </div>
     </footer>
 
+    <!-- SCRIPT 2: CONEXÃO SUPABASE E OPERAÇÕES DO SISTEMA -->
     <script>
       const SUPABASE_URL = "https://ioxlqbakmwssjovzuylc.supabase.co";
       const SUPABASE_ANON_KEY = "sb_publishable_91GKiISc_Huo5VEbluq8pw_QQPAU0uf";
-      const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      let supabaseClient = null;
 
-      const SENHA_ADMIN = "SEGOV@2026";
-      let adminAutenticado = false;
+      try {
+        if (window.supabase && typeof window.supabase.createClient === "function") {
+          supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        } else {
+          console.error("Biblioteca Supabase não carregou neste navegador.");
+        }
+      } catch (err) {
+        console.error("Erro ao inicializar Supabase:", err);
+      }
+
       let listaEventos = [];
       let participantesPortariaAtual = [];
       let participantesEditorAtual = [];
       let filtroPortariaAtual = "TODOS";
 
       function limparCPF(cpf) {
-        return cpf.replace(/\D/g, "");
-      }
-
-      // =========================================================
-      // CONTROLE DE ACESSO ADMINISTRATIVO
-      // =========================================================
-      function abrirLoginAdmin() {
-        document.getElementById("modal-login-admin").classList.remove("hidden");
-        document.getElementById("senha-admin-input").focus();
-      }
-
-      function fecharLoginAdmin() {
-        document.getElementById("modal-login-admin").classList.add("hidden");
-        document.getElementById("senha-admin-input").value = "";
-      }
-
-      function autenticarAdmin(e) {
-        e.preventDefault();
-        const digitada = document.getElementById("senha-admin-input").value;
-        if (digitada !== SENHA_ADMIN) {
-          alert("Senha administrativa incorreta.");
-          return;
-        }
-        adminAutenticado = true;
-        fecharLoginAdmin();
-        document.getElementById("nav-admin").classList.remove("hidden");
-        document.getElementById("btn-acesso-admin").classList.add("hidden");
-        mudarAba("gestao");
-        carregarListaPortaria();
-      }
-
-      function sairAdmin() {
-        adminAutenticado = false;
-        document.getElementById("nav-admin").classList.add("hidden");
-        document.getElementById("btn-acesso-admin").classList.remove("hidden");
-        mudarAba("inscricao");
-      }
-
-      function mudarAba(aba) {
-        const abasAdmin = ["gestao", "certificado", "portaria"];
-        if (abasAdmin.includes(aba) && !adminAutenticado) {
-          abrirLoginAdmin();
-          return;
-        }
-
-        ["inscricao", "gestao", "certificado", "portaria"].forEach((id) => {
-          document.getElementById("sec-" + id).classList.add("hidden");
-          const btn = document.getElementById("tab-" + id);
-          if (btn) {
-            btn.classList.remove("border-yellow-400", "text-yellow-300", "font-bold");
-            btn.classList.add("border-transparent", "text-green-100", "font-semibold");
-          }
-        });
-
-        document.getElementById("sec-" + aba).classList.remove("hidden");
-        const ativo = document.getElementById("tab-" + aba);
-        if (ativo) {
-          ativo.classList.remove("border-transparent", "text-green-100", "font-semibold");
-          ativo.classList.add("border-yellow-400", "text-yellow-300", "font-bold");
-        }
+        return (cpf || "").replace(/\D/g, "");
       }
 
       // =========================================================
       // EVENTOS E VISÃO DO CIDADÃO
       // =========================================================
-      async function carregarEventos() {
+      window.carregarEventos = async function () {
+        if (!supabaseClient) return;
         const { data, error } = await supabaseClient
           .from("eventos_segov")
           .select("*")
           .order("id", { ascending: false });
 
-        if (error) return;
+        if (error) {
+          console.error("Erro ao carregar eventos:", error.message);
+          return;
+        }
         listaEventos = data || [];
 
         const eventosCidadao = listaEventos.filter((e) => e.ativo && e.confirmado_publico);
@@ -541,7 +568,7 @@
 
         renderizarGestaoEventos();
         await carregarDadosNoEditor();
-      }
+      };
 
       function atualizarDetalhesEvento() {
         const id = Number(document.getElementById("insc-evento").value);
@@ -559,6 +586,7 @@
       }
 
       async function enfileirarEmail(eventoId, participanteId, tipoDisparo, email, nome, assunto, payloadDados) {
+        if (!supabaseClient) return;
         await supabaseClient.from("fila_emails_segov").insert([{
           evento_id: eventoId,
           participante_id: participanteId,
@@ -573,6 +601,10 @@
 
       async function realizarInscricao(e) {
         e.preventDefault();
+        if (!supabaseClient) {
+          alert("Sem conexão com o banco de dados.");
+          return;
+        }
         const eventoId = Number(document.getElementById("insc-evento").value);
         const ev = listaEventos.find((item) => item.id === eventoId);
         if (!ev) {
@@ -650,6 +682,7 @@
       }
 
       async function recuperarCredencial() {
+        if (!supabaseClient) return;
         const cpfDigitado = prompt("Digite o CPF cadastrado:");
         if (!cpfDigitado) return;
         const cpf = limparCPF(cpfDigitado);
@@ -679,13 +712,15 @@
         `;
         const qrContainer = document.getElementById("cred-qrcode");
         qrContainer.innerHTML = "";
-        new QRCode(qrContainer, {
-          text: participante.protocolo,
-          width: 150,
-          height: 150,
-          colorDark: "#004d2c",
-          colorLight: "#ffffff",
-        });
+        if (window.QRCode) {
+          new QRCode(qrContainer, {
+            text: participante.protocolo,
+            width: 150,
+            height: 150,
+            colorDark: "#004d2c",
+            colorLight: "#ffffff",
+          });
+        }
         document.getElementById("box-credencial").classList.remove("hidden");
         document.getElementById("box-credencial").scrollIntoView({ behavior: "smooth" });
       }
@@ -695,6 +730,10 @@
       // =========================================================
       async function salvarEventoAdmin(e) {
         e.preventDefault();
+        if (!supabaseClient) {
+          alert("Erro: Supabase não inicializado.");
+          return;
+        }
         const editId = document.getElementById("ev-edit-id").value;
         const regra = document.getElementById("ev-regra").value;
         const confirmado = document.getElementById("ev-confirmar-ja").checked;
@@ -734,7 +773,7 @@
         }
 
         cancelarEdicaoEvento();
-        carregarEventos();
+        await window.carregarEventos();
       }
 
       function prepararEdicaoEvento(id) {
@@ -783,10 +822,14 @@
           alert("Erro ao excluir evento: " + error.message);
           return;
         }
-        carregarEventos();
+        await window.carregarEventos();
       }
 
       async function gerarCincoEventosTeste() {
+        if (!supabaseClient) {
+          alert("Erro: Supabase não inicializado.");
+          return;
+        }
         if (!confirm("Inserir 5 eventos fictícios da SEGOV/AC no banco para testar inscrições e portaria?")) return;
 
         const baseLocal = "Auditório da SEGOV - Rua João Donato, 1624, Ipase, Rio Branco/AC";
@@ -871,7 +914,7 @@
           return;
         }
         alert("5 eventos fictícios criados! 4 já estão disponíveis ao cidadão e 1 está como rascunho.");
-        carregarEventos();
+        await window.carregarEventos();
       }
 
       function renderizarGestaoEventos() {
@@ -889,13 +932,13 @@
               <p class="text-xs text-slate-500">${ev.data_evento} • ${ev.carga_horaria} • ${ev.local_evento}</p>
             </div>
             <div class="flex flex-wrap gap-2 text-xs">
-              <button onclick="alternarStatusEvento(${ev.id}, 'confirmado_publico', ${!ev.confirmado_publico})" class="px-3 py-1.5 rounded font-bold ${ev.confirmado_publico ? "bg-slate-700 text-white" : "bg-acre text-white"}">
+              <button type="button" onclick="alternarStatusEvento(${ev.id}, 'confirmado_publico', ${!ev.confirmado_publico})" class="px-3 py-1.5 rounded font-bold ${ev.confirmado_publico ? "bg-slate-700 text-white" : "bg-acre text-white"}">
                 ${ev.confirmado_publico ? "Ocultar do Cidadão" : "Confirmar p/ Cidadão"}
               </button>
-              <button onclick="prepararEdicaoEvento(${ev.id})" class="px-3 py-1.5 rounded font-semibold bg-amber-100 hover:bg-amber-200 text-amber-950">
+              <button type="button" onclick="prepararEdicaoEvento(${ev.id})" class="px-3 py-1.5 rounded font-semibold bg-amber-100 hover:bg-amber-200 text-amber-950">
                 <i class="fa-solid fa-pen mr-1"></i> Editar
               </button>
-              <button onclick="excluirEventoAdmin(${ev.id}, '${ev.titulo.replace(/'/g, "\\'")}')" class="px-3 py-1.5 rounded font-semibold bg-red-100 hover:bg-red-200 text-red-700">
+              <button type="button" onclick="excluirEventoAdmin(${ev.id}, '${ev.titulo.replace(/'/g, "\\'")}')" class="px-3 py-1.5 rounded font-semibold bg-red-100 hover:bg-red-200 text-red-700">
                 <i class="fa-solid fa-trash mr-1"></i> Excluir
               </button>
             </div>
@@ -906,7 +949,7 @@
 
       async function alternarStatusEvento(id, campo, valor) {
         await supabaseClient.from("eventos_segov").update({ [campo]: valor }).eq("id", id);
-        carregarEventos();
+        await window.carregarEventos();
       }
 
       // =========================================================
@@ -995,7 +1038,7 @@
           return;
         }
         alert("Modelo salvo para este evento!");
-        carregarEventos();
+        await window.carregarEventos();
       }
 
       function renderizarCertificadoHTML(participante, ev, custom = null) {
@@ -1080,11 +1123,13 @@
           </div>
         `;
 
-        new QRCode(document.getElementById("cert-qr-dinamico"), {
-          text: participante.codigo_certificado,
-          width: 60,
-          height: 60,
-        });
+        if (window.QRCode) {
+          new QRCode(document.getElementById("cert-qr-dinamico"), {
+            text: participante.codigo_certificado,
+            width: 60,
+            height: 60,
+          });
+        }
       }
 
       // =========================================================
@@ -1097,4 +1142,264 @@
       }
 
       function definirFiltroPortaria(filtro) {
-        filtro
+        filtroPortariaAtual = filtro;
+        ["TODOS", "PRESENTES", "AUSENTES", "APTOS"].forEach((key) => {
+          const btn = document.getElementById("filtro-" + key);
+          if (!btn) return;
+          if (key === filtro) {
+            btn.className = "filtro-portaria-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-acre text-white transition";
+          } else {
+            btn.className = "filtro-portaria-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 transition";
+          }
+        });
+        renderizarTabelaPortaria();
+      }
+
+      function obterParticipantesFiltrados() {
+        const eventoId = Number(document.getElementById("portaria-evento-select").value);
+        const ev = listaEventos.find((e) => e.id === eventoId);
+        const termoBusca = (document.getElementById("portaria-filtro-texto")?.value || "").trim().toUpperCase();
+
+        return participantesPortariaAtual.filter((p) => {
+          const apto = ev ? verificarAptidaoCertificado(p, ev) : false;
+
+          if (filtroPortariaAtual === "PRESENTES" && !p.presente) return false;
+          if (filtroPortariaAtual === "AUSENTES" && p.presente) return false;
+          if (filtroPortariaAtual === "APTOS" && !apto) return false;
+
+          if (termoBusca) {
+            const match =
+              p.nome_completo.toUpperCase().includes(termoBusca) ||
+              (p.orgao_instituicao || "").toUpperCase().includes(termoBusca) ||
+              p.cpf.includes(limparCPF(termoBusca)) ||
+              p.protocolo.toUpperCase().includes(termoBusca);
+            if (!match) return false;
+          }
+
+          return true;
+        });
+      }
+
+      window.carregarListaPortaria = async function () {
+        if (!window.adminAutenticado || !supabaseClient) return;
+        const eventoId = Number(document.getElementById("portaria-evento-select").value);
+        const ev = listaEventos.find((e) => e.id === eventoId);
+        if (!ev) return;
+
+        const nomesRegra = {
+          CHECKIN: "Regra: Liberação automática no Check-in",
+          PRESENCA_MINIMA: `Regra: Liberação ao atingir ${ev.presenca_minima}/${ev.encontros_totais} presenças`,
+          FINAL_EVENTO: "Regra: Liberação no encerramento do evento",
+        };
+        document.getElementById("portaria-regra-info").innerText = nomesRegra[ev.regra_certificado];
+
+        const { data } = await supabaseClient
+          .from("participantes_eventos_segov")
+          .select("*")
+          .eq("evento_id", eventoId)
+          .order("nome_completo");
+
+        participantesPortariaAtual = data || [];
+
+        const totalTodos = participantesPortariaAtual.length;
+        const totalPresentes = participantesPortariaAtual.filter((p) => p.presente).length;
+        const totalAusentes = totalTodos - totalPresentes;
+        const totalAptos = participantesPortariaAtual.filter((p) => verificarAptidaoCertificado(p, ev)).length;
+
+        document.getElementById("cnt-todos").innerText = totalTodos;
+        document.getElementById("cnt-presentes").innerText = totalPresentes;
+        document.getElementById("cnt-ausentes").innerText = totalAusentes;
+        document.getElementById("cnt-aptos").innerText = totalAptos;
+
+        renderizarTabelaPortaria();
+      };
+
+      function renderizarTabelaPortaria() {
+        const eventoId = Number(document.getElementById("portaria-evento-select").value);
+        const ev = listaEventos.find((e) => e.id === eventoId);
+        if (!ev) return;
+
+        const filtrados = obterParticipantesFiltrados();
+        document.getElementById("portaria-resumo-contagem").innerText =
+          `Exibindo: ${filtrados.length} de ${participantesPortariaAtual.length} inscrito(s)`;
+
+        if (filtrados.length === 0) {
+          document.getElementById("tabela-portaria").innerHTML = `
+            <tr>
+              <td colspan="6" class="py-6 px-4 text-center text-slate-500">
+                Nenhum participante encontrado para o filtro selecionado.
+              </td>
+            </tr>`;
+          return;
+        }
+
+        document.getElementById("tabela-portaria").innerHTML = filtrados
+          .map((p) => {
+            const apto = verificarAptidaoCertificado(p, ev);
+            return `<tr>
+              <td class="py-2.5 px-4 font-semibold">
+                ${p.nome_completo}
+                <br><span class="text-[11px] text-slate-500">${p.orgao_instituicao} • <span class="font-mono text-slate-400">${p.protocolo}</span></span>
+              </td>
+              <td class="py-2.5 px-4 text-xs">${p.email}<br><span class="font-mono text-slate-500">${p.cpf}</span></td>
+              <td class="py-2.5 px-4 text-center">
+                ${
+                  p.presente
+                    ? `<span class="bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded">Presente</span>`
+                    : `<span class="bg-red-100 text-red-700 font-semibold px-2 py-0.5 rounded">Ausente</span>`
+                }
+              </td>
+              <td class="py-2.5 px-4 text-center font-bold">${p.presencas_qtd} / ${ev.encontros_totais}</td>
+              <td class="py-2.5 px-4 text-center">
+                ${
+                  apto
+                    ? `<span class="bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded">Apto ${p.certificado_enviado ? "✓" : ""}</span>`
+                    : `<span class="bg-slate-100 text-slate-600 px-2 py-0.5 rounded">Pendente</span>`
+                }
+              </td>
+              <td class="py-2.5 px-4 text-center">
+                <button type="button" onclick="registrarPresencaParticipante(${p.id})" class="bg-acre hover:bg-acre-dark text-white font-bold px-3 py-1 rounded">+ Presença</button>
+              </td>
+            </tr>`;
+          })
+          .join("");
+      }
+
+      async function checkinRapido(e) {
+        e.preventDefault();
+        const termo = document.getElementById("portaria-busca-rapida").value.trim().toUpperCase();
+        if (!termo) return;
+        const p = participantesPortariaAtual.find(
+          (item) =>
+            item.protocolo.toUpperCase() === termo ||
+            item.cpf === limparCPF(termo) ||
+            item.nome_completo.toUpperCase().includes(termo)
+        );
+        if (!p) {
+          alert("Participante não localizado neste evento.");
+          return;
+        }
+        await registrarPresencaParticipante(p.id);
+        document.getElementById("portaria-busca-rapida").value = "";
+      }
+
+      async function registrarPresencaParticipante(participanteId) {
+        const eventoId = Number(document.getElementById("portaria-evento-select").value);
+        const ev = listaEventos.find((e) => e.id === eventoId);
+        const p = participantesPortariaAtual.find((x) => x.id === participanteId);
+        if (!p || !ev) return;
+
+        const novaQtd = (p.presencas_qtd || 0) + 1;
+        const atualizado = { ...p, presencas_qtd: novaQtd, presente: true };
+        const ficouApto = verificarAptidaoCertificado(atualizado, ev);
+
+        let enfileiradoAgora = p.certificado_enviado;
+        if (ficouApto && !p.certificado_enviado) {
+          await enfileirarEmail(
+            eventoId,
+            p.id,
+            "CERTIFICADO_LIBERADO",
+            p.email,
+            p.nome_completo,
+            `Certificado Disponível — ${ev.titulo}`,
+            {
+              nome_completo: p.nome_completo,
+              cpf: p.cpf,
+              orgao_instituicao: p.orgao_instituicao,
+              evento_titulo: ev.titulo,
+              data_evento: ev.data_evento,
+              carga_horaria: ev.carga_horaria,
+              codigo_certificado: p.codigo_certificado,
+            }
+          );
+          enfileiradoAgora = true;
+        }
+
+        await supabaseClient
+          .from("participantes_eventos_segov")
+          .update({
+            presente: true,
+            presencas_qtd: novaQtd,
+            checkin_em: new Date().toISOString(),
+            certificado_enviado: enfileiradoAgora,
+          })
+          .eq("id", participanteId);
+
+        await window.carregarListaPortaria();
+      }
+
+      async function enfileirarCertificadosEmMassa() {
+        const eventoId = Number(document.getElementById("portaria-evento-select").value);
+        const ev = listaEventos.find((e) => e.id === eventoId);
+        if (!ev) return;
+
+        await supabaseClient.from("eventos_segov").update({ certificado_liberado: true }).eq("id", eventoId);
+
+        const aptosSemFila = participantesPortariaAtual.filter((p) => p.presente && !p.certificado_enviado);
+
+        for (const p of aptosSemFila) {
+          await enfileirarEmail(
+            eventoId,
+            p.id,
+            "CERTIFICADO_LIBERADO",
+            p.email,
+            p.nome_completo,
+            `Certificado Liberado — ${ev.titulo}`,
+            {
+              nome_completo: p.nome_completo,
+              cpf: p.cpf,
+              orgao_instituicao: p.orgao_instituicao,
+              evento_titulo: ev.titulo,
+              data_evento: ev.data_evento,
+              carga_horaria: ev.carga_horaria,
+              codigo_certificado: p.codigo_certificado,
+            }
+          );
+          await supabaseClient.from("participantes_eventos_segov").update({ certificado_enviado: true }).eq("id", p.id);
+        }
+
+        alert(`Certificados liberados! ${aptosSemFila.length} registro(s) enfileirado(s) para disparo em massa.`);
+        await window.carregarEventos();
+        await window.carregarListaPortaria();
+      }
+
+      function exportarCSVEvento() {
+        const listaExportar = obterParticipantesFiltrados();
+        if (listaExportar.length === 0) {
+          alert("Não há participantes no filtro atual para exportar.");
+          return;
+        }
+        const linhas = [
+          ["Nome", "CPF", "Email", "Orgao", "Protocolo", "Status", "Presencas", "Codigo Certificado"],
+          ...listaExportar.map((p) => [
+            `"${p.nome_completo}"`,
+            p.cpf,
+            p.email,
+            `"${p.orgao_instituicao}"`,
+            p.protocolo,
+            p.presente ? "Presente" : "Ausente",
+            p.presencas_qtd,
+            p.codigo_certificado,
+          ]),
+        ];
+        const csv = "\uFEFF" + linhas.map((l) => l.join(";")).join("\n");
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = `participantes_${filtroPortariaAtual.toLowerCase()}_sisgoveventos.csv`;
+        link.click();
+      }
+
+      function imprimirArea(elementId) {
+        document.querySelectorAll(".area-print-ativa").forEach((el) => el.classList.remove("area-print-ativa"));
+        const alvo = document.getElementById(elementId);
+        if (!alvo) return;
+        alvo.classList.add("area-print-ativa");
+        window.print();
+        setTimeout(() => alvo.classList.remove("area-print-ativa"), 500);
+      }
+
+      window.carregarEventos();
+    </script>
+  </body>
+</html>
