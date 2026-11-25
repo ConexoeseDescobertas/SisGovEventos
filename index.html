@@ -43,7 +43,7 @@
       }
     </style>
 
-    <!-- SCRIPT 1: CONTROLE ADMINISTRATIVO BLINDADO (CARREGA ANTES DE QUALQUER API) -->
+    <!-- SCRIPT 1: CONTROLE ADMINISTRATIVO BLINDADO -->
     <script>
       window.SENHA_ADMIN = "SEGOV@2026";
       window.adminAutenticado = false;
@@ -147,7 +147,7 @@
         </button>
       </div>
 
-      <!-- Menu Interno (Visível apenas após login administrativo) -->
+      <!-- Menu Interno -->
       <nav id="nav-admin" class="hidden bg-acre-dark/80 border-t border-white/10">
         <div class="max-w-6xl mx-auto px-4 flex flex-wrap items-center justify-between gap-2">
           <div class="flex overflow-x-auto gap-1">
@@ -191,9 +191,7 @@
     </div>
 
     <main class="max-w-6xl mx-auto px-4 py-8 flex-grow w-full">
-      <!-- ========================================================= -->
-      <!-- VISÃO DO CIDADÃO: APENAS INSCRIÇÃO EM EVENTOS CONFIRMADOS -->
-      <!-- ========================================================= -->
+      <!-- VISÃO DO CIDADÃO -->
       <section id="sec-inscricao" class="max-w-3xl mx-auto space-y-6">
         <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
           <div class="bg-acre text-white px-6 py-4">
@@ -251,7 +249,6 @@
             </div>
           </form>
 
-          <!-- Comprovante / Credencial Gerada -->
           <div id="box-credencial" class="hidden border-t border-slate-200 p-6 bg-slate-50">
             <div id="print-credencial" class="bg-white border-2 border-green-800 rounded-xl p-6 max-w-md mx-auto text-center shadow-sm">
               <p class="text-xs font-bold uppercase text-green-800">Governo do Estado do Acre • SEGOV</p>
@@ -269,9 +266,7 @@
         </div>
       </section>
 
-      <!-- ========================================================= -->
-      <!-- ADMIN 1: CRIAR, EDITAR E CONFIRMAR EVENTOS                -->
-      <!-- ========================================================= -->
+      <!-- ADMIN 1: CONFIGURAR EVENTOS -->
       <section id="sec-gestao" class="hidden max-w-5xl mx-auto space-y-6">
         <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
           <div class="bg-acre text-white px-6 py-4 flex flex-wrap justify-between items-center gap-3">
@@ -352,9 +347,7 @@
         </div>
       </section>
 
-      <!-- ========================================================= -->
-      <!-- ADMIN 2: MODELOS PRONTOS & EDITÁVEIS DE CERTIFICADO       -->
-      <!-- ========================================================= -->
+      <!-- ADMIN 2: MODELOS DE CERTIFICADO -->
       <section id="sec-certificado" class="hidden max-w-5xl mx-auto space-y-6">
         <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden no-print">
           <div class="bg-slate-800 text-white px-6 py-4">
@@ -434,9 +427,7 @@
         </div>
       </section>
 
-      <!-- ========================================================= -->
-      <!-- ADMIN 3: PORTARIA, FILTROS & CONTROLE DE PRESENÇA         -->
-      <!-- ========================================================= -->
+      <!-- ADMIN 3: PORTARIA & PRESENÇA -->
       <section id="sec-portaria" class="hidden max-w-5xl mx-auto space-y-6">
         <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 space-y-4">
           <div class="flex flex-col md:flex-row justify-between items-center gap-4">
@@ -514,8 +505,8 @@
 
     <!-- SCRIPT 2: CONEXÃO SUPABASE E OPERAÇÕES DO SISTEMA -->
     <script>
-      const SUPABASE_URL = "https://hzmbyexxuzrsriwktcqu.supabase.co/rest/v1/";
-      const SUPABASE_ANON_KEY = "https://hzmbyexxuzrsriwktcqu.supabase.co/rest/v1/";
+      const SUPABASE_URL = "https://hzmbyexxuzrsriwktcqu.supabase.co";
+      const SUPABASE_ANON_KEY = "sb_publishable_91GKiISc_Huo5VEbluq8pw_QQPAU0uf";
       let supabaseClient = null;
 
       try {
