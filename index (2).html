@@ -1,0 +1,1112 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SisGovEventos | Inscrição Institucional — SEGOV/AC</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --acre-verde: #006b3f;
+        --acre-verde-escuro: #004d2c;
+        --acre-amarelo: #facc15;
+        --acre-vermelho: #dc2626;
+      }
+      body {
+        font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+        background-color: #f1f5f3;
+      }
+      .bg-acre { background-color: var(--acre-verde); }
+      .bg-acre-dark { background-color: var(--acre-verde-escuro); }
+      .text-acre { color: var(--acre-verde); }
+
+      @media print {
+        body * { visibility: hidden; }
+        .area-print-ativa, .area-print-ativa * { visibility: visible; }
+        .area-print-ativa {
+          position: fixed;
+          left: 0;
+          top: 0;
+          width: 100%;
+          background: white !important;
+          margin: 0 !important;
+          box-shadow: none !important;
+        }
+        .no-print { display: none !important; }
+        @page { size: auto; margin: 10mm; }
+      }
+    </style>
+  </head>
+  <body class="text-slate-800 flex flex-col min-h-screen">
+    <!-- Barra Institucional Superior -->
+    <div class="bg-acre-dark text-white text-xs py-1.5 px-4 no-print">
+      <div class="max-w-6xl mx-auto flex flex-wrap justify-between items-center gap-2">
+        <span><i class="fa-solid fa-star text-red-500 mr-1"></i> Governo do Estado do Acre • Secretaria de Estado de Governo (SEGOV)</span>
+        <span>Rua João Donato, 1624 • Ipase • Rio Branco/AC</span>
+      </div>
+    </div>
+
+    <!-- Cabeçalho -->
+    <header class="bg-acre text-white shadow-md no-print">
+      <div class="max-w-6xl mx-auto px-4 py-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div class="flex items-center gap-4">
+          <div class="w-14 h-14 rounded-xl bg-yellow-400 text-green-950 flex items-center justify-center text-2xl font-black shadow">
+            <i class="fa-solid fa-calendar-check"></i>
+          </div>
+          <div>
+            <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight">SisGovEventos</h1>
+            <p class="text-green-100 text-sm">Secretaria de Estado de Governo — SEGOV/AC • NUTIN</p>
+          </div>
+        </div>
+
+        <button
+          id="btn-acesso-admin"
+          onclick="abrirLoginAdmin()"
+          class="bg-white/15 hover:bg-white/25 text-white text-xs font-bold px-4 py-2 rounded-lg border border-white/30 transition"
+        >
+          <i class="fa-solid fa-lock mr-1.5"></i> Acesso Administrativo
+        </button>
+      </div>
+
+      <!-- Menu Interno (Visível apenas quando autenticado como Admin) -->
+      <nav id="nav-admin" class="hidden bg-acre-dark/80 border-t border-white/10">
+        <div class="max-w-6xl mx-auto px-4 flex flex-wrap items-center justify-between gap-2">
+          <div class="flex overflow-x-auto gap-1">
+            <button id="tab-inscricao" onclick="mudarAba('inscricao')" class="aba-btn px-4 py-3 text-xs font-bold border-b-4 border-yellow-400 text-yellow-300 whitespace-nowrap">
+              <i class="fa-solid fa-user-plus mr-1"></i> Tela do Cidadão (Inscrição)
+            </button>
+            <button id="tab-gestao" onclick="mudarAba('gestao')" class="aba-btn px-4 py-3 text-xs font-semibold border-b-4 border-transparent text-green-100 hover:text-white whitespace-nowrap">
+              <i class="fa-solid fa-sliders mr-1"></i> Configurar & Confirmar Eventos
+            </button>
+            <button id="tab-certificado" onclick="mudarAba('certificado')" class="aba-btn px-4 py-3 text-xs font-semibold border-b-4 border-transparent text-green-100 hover:text-white whitespace-nowrap">
+              <i class="fa-solid fa-award mr-1"></i> Modelos de Certificado
+            </button>
+            <button id="tab-portaria" onclick="mudarAba('portaria')" class="aba-btn px-4 py-3 text-xs font-semibold border-b-4 border-transparent text-green-100 hover:text-white whitespace-nowrap">
+              <i class="fa-solid fa-clipboard-check mr-1"></i> Portaria & Presença
+            </button>
+          </div>
+          <button onclick="sairAdmin()" class="text-xs text-red-200 hover:text-white font-semibold py-2">
+            <i class="fa-solid fa-right-from-bracket mr-1"></i> Sair do Modo Admin
+          </button>
+        </div>
+      </nav>
+    </header>
+
+    <!-- Modal de Login Administrativo -->
+    <div id="modal-login-admin" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 no-print">
+      <div class="bg-white rounded-xl shadow-xl max-w-sm w-full p-6 space-y-4">
+        <div class="flex justify-between items-center border-b pb-2">
+          <h3 class="font-bold text-base text-slate-900"><i class="fa-solid fa-shield-halved text-acre mr-1.5"></i> Área Interna — SEGOV/NUTIN</h3>
+          <button onclick="fecharLoginAdmin()" class="text-slate-400 hover:text-slate-700"><i class="fa-solid fa-xmark text-lg"></i></button>
+        </div>
+        <form onsubmit="autenticarAdmin(event)" class="space-y-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Senha Administrativa</label>
+            <input type="password" id="senha-admin-input" required placeholder="Digite a senha" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm" />
+          </div>
+          <button type="submit" class="w-full bg-acre hover:bg-acre-dark text-white font-bold py-2.5 rounded-lg text-sm">
+            Acessar Painel Interno
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <main class="max-w-6xl mx-auto px-4 py-8 flex-grow w-full">
+      <!-- ========================================================= -->
+      <!-- VISÃO DO CIDADÃO: APENAS INSCRIÇÃO EM EVENTOS CONFIRMADOS -->
+      <!-- ========================================================= -->
+      <section id="sec-inscricao" class="max-w-3xl mx-auto space-y-6">
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+          <div class="bg-acre text-white px-6 py-4">
+            <h2 class="text-lg font-bold"><i class="fa-solid fa-file-signature mr-2"></i>Formulário de Inscrição</h2>
+            <p class="text-xs text-green-100 mt-0.5">Preencha seus dados para confirmar participação nos eventos abertos da SEGOV/AC.</p>
+          </div>
+
+          <form id="form-inscricao" onsubmit="realizarInscricao(event)" class="p-6 space-y-4">
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Evento Disponível *</label>
+              <select id="insc-evento" onchange="atualizarDetalhesEvento()" required class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm font-semibold bg-slate-50"></select>
+              <div id="box-info-evento" class="hidden mt-2 p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-xs text-emerald-950 space-y-1"></div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Nome Completo *</label>
+                <input type="text" id="insc-nome" required placeholder="Nome completo" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm" />
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">CPF (apenas números) *</label>
+                <input type="text" id="insc-cpf" required maxlength="14" placeholder="000.000.000-00" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm" />
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">E-mail *</label>
+                <input type="email" id="insc-email" required placeholder="seuemail@exemplo.com" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm" />
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">WhatsApp *</label>
+                <input type="tel" id="insc-whats" required placeholder="(68) 99999-0000" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm" />
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Órgão / Instituição / Comunidade *</label>
+                <input type="text" id="insc-orgao" required placeholder="Ex: SEGOV / Órgão Público / Cidadão" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm" />
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Cargo / Função</label>
+                <input type="text" id="insc-cargo" placeholder="Ex: Servidor / Estudante / Participante" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm" />
+              </div>
+            </div>
+
+            <div class="pt-2 flex flex-wrap gap-3">
+              <button type="submit" id="btn-inscrever" class="bg-acre hover:bg-acre-dark text-white font-bold px-6 py-2.5 rounded-lg text-sm transition shadow">
+                <i class="fa-solid fa-check mr-1.5"></i> Finalizar Inscrição
+              </button>
+              <button type="button" onclick="recuperarCredencial()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold px-4 py-2.5 rounded-lg text-sm transition">
+                <i class="fa-solid fa-qrcode mr-1"></i> Consultar Minha Credencial
+              </button>
+            </div>
+          </form>
+
+          <!-- Comprovante / Credencial Gerada -->
+          <div id="box-credencial" class="hidden border-t border-slate-200 p-6 bg-slate-50">
+            <div id="print-credencial" class="bg-white border-2 border-green-800 rounded-xl p-6 max-w-md mx-auto text-center shadow-sm">
+              <p class="text-xs font-bold uppercase text-green-800">Governo do Estado do Acre • SEGOV</p>
+              <h3 class="text-base font-extrabold text-slate-900 mt-0.5">COMPROVANTE DE INSCRIÇÃO</h3>
+              <div id="cred-qrcode" class="flex justify-center my-4 p-2 bg-white"></div>
+              <p id="cred-protocolo" class="font-mono text-sm font-black bg-green-100 text-green-900 inline-block px-3 py-1 rounded"></p>
+              <div id="cred-dados" class="mt-4 text-left text-xs space-y-1.5 border-t pt-3 text-slate-700"></div>
+            </div>
+            <div class="mt-4 flex justify-center gap-3 no-print">
+              <button onclick="imprimirArea('print-credencial')" class="bg-slate-800 hover:bg-slate-900 text-white font-semibold px-4 py-2 rounded-lg text-sm">
+                <i class="fa-solid fa-print mr-1.5"></i> Imprimir / Salvar PDF
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========================================================= -->
+      <!-- ADMIN 1: CONFIGURAR, EDITAR E CONFIRMAR EVENTOS           -->
+      <!-- ========================================================= -->
+      <section id="sec-gestao" class="hidden max-w-5xl mx-auto space-y-6">
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex flex-wrap justify-between items-center gap-2">
+          <div>
+            <h3 class="font-bold text-sm text-slate-900"><i class="fa-solid fa-paper-plane mr-1.5 text-acre"></i> Fila de Disparo Automático em Massa</h3>
+            <p class="text-xs text-slate-500">Registros gerados automaticamente para envio em massa por e-mail.</p>
+          </div>
+          <div class="flex items-center gap-3">
+            <span id="resumo-fila-emails" class="text-xs font-semibold text-slate-700 bg-slate-100 px-3 py-1.5 rounded">Pendentes: 0 | Enviados: 0</span>
+            <button type="button" onclick="atualizarResumoFila()" class="bg-slate-800 text-white text-xs font-bold px-3 py-1.5 rounded">Atualizar</button>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+          <div class="bg-acre text-white px-6 py-4">
+            <h2 class="font-bold text-base"><i class="fa-solid fa-calendar-plus mr-1.5"></i>Criar Novo Evento Interno</h2>
+            <p class="text-xs text-green-100">Por padrão, o evento nasce como <strong>Rascunho (Não visível ao cidadão)</strong> até você clicar em <strong>Confirmar p/ Cidadão</strong>.</p>
+          </div>
+
+          <form onsubmit="criarNovoEvento(event)" class="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Tipo de Evento *</label>
+              <select id="ev-tipo" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm">
+                <option value="Evento Institucional">Evento Institucional</option>
+                <option value="Palestra / Conferência">Palestra / Conferência</option>
+                <option value="Curso de Capacitação">Curso de Capacitação</option>
+                <option value="Aulão / Seminário">Aulão / Seminário</option>
+                <option value="Workshop">Workshop</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Regra do Certificado *</label>
+              <select id="ev-regra" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm font-semibold bg-amber-50">
+                <option value="CHECKIN">1. Automático no Check-in</option>
+                <option value="PRESENCA_MINIMA">2. Por Presença Mínima</option>
+                <option value="FINAL_EVENTO">3. Apenas no Final do Evento</option>
+              </select>
+            </div>
+            <div class="md:col-span-2">
+              <label class="block text-xs font-bold text-slate-700 mb-1">Título Oficial do Evento *</label>
+              <input type="text" id="ev-titulo" required placeholder="Ex: Capacitação Institucional SEGOV/AC" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm" />
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Data(s) *</label>
+              <input type="text" id="ev-data" required placeholder="Ex: 15 de Dezembro de 2026" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm" />
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Carga Horária *</label>
+              <input type="text" id="ev-carga" required placeholder="Ex: 4 horas" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm" />
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Total de Encontros</label>
+              <input type="number" id="ev-encontros" value="1" min="1" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm" />
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Presença Mínima Exigida</label>
+              <input type="number" id="ev-minima" value="1" min="1" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm" />
+            </div>
+            <div class="md:col-span-2">
+              <label class="block text-xs font-bold text-slate-700 mb-1">Local *</label>
+              <input type="text" id="ev-local" required value="Auditório da SEGOV - Rua João Donato, 1624, Ipase, Rio Branco/AC" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm" />
+            </div>
+            <div class="md:col-span-2 flex items-center gap-2">
+              <input type="checkbox" id="ev-confirmar-ja" class="w-4 h-4 accent-green-700" />
+              <label for="ev-confirmar-ja" class="text-xs font-bold text-slate-700">Já confirmar e disponibilizar para inscrição do cidadão ao salvar</label>
+            </div>
+            <div class="md:col-span-2">
+              <button type="submit" class="bg-acre hover:bg-acre-dark text-white font-bold px-6 py-2.5 rounded-lg text-sm transition">
+                Salvar Evento
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+          <h3 class="font-bold text-base mb-4">Eventos Cadastrados (Confirmação para o Cidadão)</h3>
+          <div id="lista-eventos-gestao" class="space-y-3"></div>
+        </div>
+      </section>
+
+      <!-- ========================================================= -->
+      <!-- ADMIN 2: MODELOS PRONTOS & EDITÁVEIS DE CERTIFICADO       -->
+      <!-- ========================================================= -->
+      <section id="sec-certificado" class="hidden max-w-5xl mx-auto space-y-6">
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden no-print">
+          <div class="bg-slate-800 text-white px-6 py-4">
+            <h3 class="font-bold text-base"><i class="fa-solid fa-pen-ruler mr-1.5 text-yellow-400"></i> Modelos Prontos & Editáveis de Certificado</h3>
+            <p class="text-xs text-slate-300">Escolha o modelo, personalize o texto com variáveis dinâmicas e teste com o nome de qualquer inscrito.</p>
+          </div>
+
+          <div class="p-6 space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">1. Evento</label>
+                <select id="editor-evento-select" onchange="carregarDadosNoEditor()" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm font-semibold"></select>
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">2. Modelo Pronto</label>
+                <select id="editor-modelo-select" onchange="atualizarPreviewEditor()" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm font-semibold">
+                  <option value="CLASSICO_ACRE">Modelo 1: Clássico Institucional Governo do Acre</option>
+                  <option value="MODERNO_SEGOV">Modelo 2: Executivo Moderno SEGOV / NUTIN</option>
+                  <option value="CURSO_PROGRAMATICO">Modelo 3: Capacitação / Evento com Conteúdo</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">3. Participante Inscrito (Prévia)</label>
+                <select id="editor-participante-teste" onchange="atualizarPreviewEditor()" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm">
+                  <option value="">Participante Exemplo</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <div class="flex flex-wrap justify-between items-center mb-1 gap-2">
+                <label class="text-xs font-bold text-slate-700">Texto Editável do Certificado</label>
+                <div class="flex flex-wrap gap-1 text-[11px]">
+                  <button type="button" onclick="inserirTagTexto('{NOME}')" class="bg-emerald-100 text-emerald-900 px-2 py-0.5 rounded font-mono font-bold">+ {NOME}</button>
+                  <button type="button" onclick="inserirTagTexto('{CPF}')" class="bg-emerald-100 text-emerald-900 px-2 py-0.5 rounded font-mono font-bold">+ {CPF}</button>
+                  <button type="button" onclick="inserirTagTexto('{ORGAO}')" class="bg-emerald-100 text-emerald-900 px-2 py-0.5 rounded font-mono font-bold">+ {ORGAO}</button>
+                  <button type="button" onclick="inserirTagTexto('{EVENTO}')" class="bg-emerald-100 text-emerald-900 px-2 py-0.5 rounded font-mono font-bold">+ {EVENTO}</button>
+                  <button type="button" onclick="inserirTagTexto('{DATA}')" class="bg-emerald-100 text-emerald-900 px-2 py-0.5 rounded font-mono font-bold">+ {DATA}</button>
+                  <button type="button" onclick="inserirTagTexto('{CARGA_HORARIA}')" class="bg-emerald-100 text-emerald-900 px-2 py-0.5 rounded font-mono font-bold">+ {CARGA_HORARIA}</button>
+                </div>
+              </div>
+              <textarea id="editor-texto-cert" rows="3" onkeyup="atualizarPreviewEditor()" class="w-full border border-slate-300 rounded-lg p-3 text-sm"></textarea>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Conteúdo Programático / Observações (Modelo 3)</label>
+                <textarea id="editor-conteudo-prog" rows="2" onkeyup="atualizarPreviewEditor()" class="w-full border border-slate-300 rounded-lg p-2.5 text-xs"></textarea>
+              </div>
+              <div class="grid grid-cols-2 gap-2">
+                <div>
+                  <label class="block text-xs font-bold text-slate-700 mb-1">Assinatura 1</label>
+                  <input type="text" id="editor-ass1-nome" onkeyup="atualizarPreviewEditor()" class="w-full border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs mb-1" />
+                  <input type="text" id="editor-ass1-cargo" onkeyup="atualizarPreviewEditor()" class="w-full border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs" />
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-slate-700 mb-1">Assinatura 2</label>
+                  <input type="text" id="editor-ass2-nome" onkeyup="atualizarPreviewEditor()" class="w-full border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs mb-1" />
+                  <input type="text" id="editor-ass2-cargo" onkeyup="atualizarPreviewEditor()" class="w-full border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs" />
+                </div>
+              </div>
+            </div>
+
+            <div class="flex flex-wrap gap-3 pt-1">
+              <button type="button" onclick="salvarModeloCertificadoEvento()" class="bg-acre hover:bg-acre-dark text-white font-bold px-5 py-2 rounded-lg text-sm shadow">
+                <i class="fa-solid fa-floppy-disk mr-1.5"></i> Salvar Modelo neste Evento
+              </button>
+              <button type="button" onclick="imprimirArea('print-certificado-a4')" class="bg-slate-800 hover:bg-slate-900 text-white font-semibold px-4 py-2 rounded-lg text-sm">
+                <i class="fa-solid fa-print mr-1.5"></i> Imprimir / Salvar PDF
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div id="box-certificado-oficial" class="max-w-5xl mx-auto">
+          <div id="print-certificado-a4"></div>
+        </div>
+      </section>
+
+      <!-- ========================================================= -->
+      <!-- ADMIN 3: PORTARIA & CONTROLE DE PRESENÇA                  -->
+      <!-- ========================================================= -->
+      <section id="sec-portaria" class="hidden max-w-5xl mx-auto space-y-6">
+        <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
+          <div class="flex flex-col md:flex-row justify-between items-center gap-4 mb-4">
+            <div>
+              <h2 class="font-bold text-lg text-acre"><i class="fa-solid fa-qrcode mr-1.5"></i>Portaria & Check-in por QR Code / CPF</h2>
+              <p id="portaria-regra-info" class="text-xs text-slate-600 font-semibold mt-0.5"></p>
+            </div>
+            <select id="portaria-evento-select" onchange="carregarListaPortaria()" class="border border-slate-300 rounded-lg px-3 py-2 text-sm font-semibold"></select>
+          </div>
+
+          <form onsubmit="checkinRapido(event)" class="flex flex-col sm:flex-row gap-2">
+            <input type="text" id="portaria-busca-rapida" placeholder="Bipe o QR Code (EVT-...) ou digite CPF / Nome..." class="flex-1 border-2 border-green-700 rounded-lg px-4 py-2.5 text-sm font-semibold" />
+            <button type="submit" class="bg-acre hover:bg-acre-dark text-white font-bold px-6 py-2.5 rounded-lg text-sm">Registrar Presença (+1)</button>
+          </form>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+          <div class="bg-slate-800 text-white px-5 py-3 flex flex-wrap justify-between items-center gap-2 text-xs">
+            <span id="portaria-resumo-contagem" class="font-bold">Inscritos: 0 | Aptos: 0</span>
+            <div class="flex gap-2">
+              <button onclick="enfileirarCertificadosEmMassa()" class="bg-amber-400 hover:bg-amber-300 text-slate-950 px-3 py-1 rounded font-bold">
+                <i class="fa-solid fa-layer-group mr-1"></i> Liberar & Enfileirar Certificados
+              </button>
+              <button onclick="exportarCSVEvento()" class="bg-emerald-600 hover:bg-emerald-700 px-3 py-1 rounded font-semibold">
+                <i class="fa-solid fa-file-csv mr-1"></i> Exportar CSV
+              </button>
+            </div>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-xs text-left">
+              <thead class="bg-slate-100 border-b text-slate-600 uppercase">
+                <tr>
+                  <th class="py-2.5 px-4">Participante</th>
+                  <th class="py-2.5 px-4">E-mail / CPF</th>
+                  <th class="py-2.5 px-4 text-center">Presenças</th>
+                  <th class="py-2.5 px-4 text-center">Certificado</th>
+                  <th class="py-2.5 px-4 text-center">Ação</th>
+                </tr>
+              </thead>
+              <tbody id="tabela-portaria" class="divide-y divide-slate-100"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="bg-slate-900 text-slate-400 text-xs py-5 px-4 mt-12 no-print">
+      <div class="max-w-6xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-2">
+        <p><strong class="text-white">SisGovEventos</strong> • Secretaria de Estado de Governo (SEGOV/AC)</p>
+        <p>NUTIN • Núcleo de Tecnologia da Informação</p>
+      </div>
+    </footer>
+
+    <script>
+      const SUPABASE_URL = "https://ioxlqbakmwssjovzuylc.supabase.co";
+      const SUPABASE_ANON_KEY = "sb_publishable_l-ntfbRnXftCg6T4TLGb2w_EOp0dixU";
+      const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+      const SENHA_ADMIN = "SEGOV@2026";
+      let adminAutenticado = false;
+      let listaEventos = [];
+      let participantesPortariaAtual = [];
+      let participantesEditorAtual = [];
+
+      function limparCPF(cpf) {
+        return cpf.replace(/\D/g, "");
+      }
+
+      // =========================================================
+      // CONTROLE DE ACESSO ADMINISTRATIVO
+      // =========================================================
+      function abrirLoginAdmin() {
+        document.getElementById("modal-login-admin").classList.remove("hidden");
+        document.getElementById("senha-admin-input").focus();
+      }
+
+      function fecharLoginAdmin() {
+        document.getElementById("modal-login-admin").classList.add("hidden");
+        document.getElementById("senha-admin-input").value = "";
+      }
+
+      function autenticarAdmin(e) {
+        e.preventDefault();
+        const digitada = document.getElementById("senha-admin-input").value;
+        if (digitada !== SENHA_ADMIN) {
+          alert("Senha administrativa incorreta.");
+          return;
+        }
+        adminAutenticado = true;
+        fecharLoginAdmin();
+        document.getElementById("nav-admin").classList.remove("hidden");
+        document.getElementById("btn-acesso-admin").classList.add("hidden");
+        mudarAba("gestao");
+        carregarListaPortaria();
+        atualizarResumoFila();
+      }
+
+      function sairAdmin() {
+        adminAutenticado = false;
+        document.getElementById("nav-admin").classList.add("hidden");
+        document.getElementById("btn-acesso-admin").classList.remove("hidden");
+        mudarAba("inscricao");
+      }
+
+      function mudarAba(aba) {
+        const abasAdmin = ["gestao", "certificado", "portaria"];
+        if (abasAdmin.includes(aba) && !adminAutenticado) {
+          abrirLoginAdmin();
+          return;
+        }
+
+        ["inscricao", "gestao", "certificado", "portaria"].forEach((id) => {
+          document.getElementById("sec-" + id).classList.add("hidden");
+          const btn = document.getElementById("tab-" + id);
+          if (btn) {
+            btn.classList.remove("border-yellow-400", "text-yellow-300", "font-bold");
+            btn.classList.add("border-transparent", "text-green-100", "font-semibold");
+          }
+        });
+
+        document.getElementById("sec-" + aba).classList.remove("hidden");
+        const ativo = document.getElementById("tab-" + aba);
+        if (ativo) {
+          ativo.classList.remove("border-transparent", "text-green-100", "font-semibold");
+          ativo.classList.add("border-yellow-400", "text-yellow-300", "font-bold");
+        }
+      }
+
+      // =========================================================
+      // EVENTOS E VISÃO DO CIDADÃO
+      // =========================================================
+      async function carregarEventos() {
+        const { data, error } = await supabaseClient
+          .from("eventos_segov")
+          .select("*")
+          .order("id", { ascending: false });
+
+        if (error) return;
+        listaEventos = data || [];
+
+        // Cidadão vê apenas eventos confirmados pela administração e ativos
+        const eventosCidadao = listaEventos.filter((e) => e.ativo && e.confirmado_publico);
+        const selectInsc = document.getElementById("insc-evento");
+        selectInsc.innerHTML = eventosCidadao.length
+          ? eventosCidadao
+              .map((e) => `<option value="${e.id}">${e.tipo_evento}: ${e.titulo} (${e.data_evento})</option>`)
+              .join("")
+          : '<option value="">Nenhum evento confirmado para inscrição no momento</option>';
+        atualizarDetalhesEvento();
+
+        const optionsTodos = listaEventos.map((e) => `<option value="${e.id}">${e.titulo}</option>`).join("");
+        document.getElementById("portaria-evento-select").innerHTML = optionsTodos;
+        document.getElementById("editor-evento-select").innerHTML = optionsTodos;
+
+        renderizarGestaoEventos();
+        await carregarDadosNoEditor();
+      }
+
+      function atualizarDetalhesEvento() {
+        const id = Number(document.getElementById("insc-evento").value);
+        const ev = listaEventos.find((e) => e.id === id);
+        const box = document.getElementById("box-info-evento");
+        if (!ev) {
+          box.classList.add("hidden");
+          return;
+        }
+        box.classList.remove("hidden");
+        box.innerHTML = `
+          <p><strong>Data:</strong> ${ev.data_evento} • <strong>Carga Horária:</strong> ${ev.carga_horaria}</p>
+          <p><strong>Local:</strong> ${ev.local_evento}</p>
+        `;
+      }
+
+      async function enfileirarEmail(eventoId, participanteId, tipoDisparo, email, nome, assunto, payloadDados) {
+        await supabaseClient.from("fila_emails_segov").insert([{
+          evento_id: eventoId,
+          participante_id: participanteId,
+          tipo_disparo: tipoDisparo,
+          destinatario_email: email,
+          destinatario_nome: nome,
+          assunto: assunto,
+          payload_dados: payloadDados,
+          status: "PENDENTE"
+        }]);
+      }
+
+      async function realizarInscricao(e) {
+        e.preventDefault();
+        const eventoId = Number(document.getElementById("insc-evento").value);
+        const ev = listaEventos.find((item) => item.id === eventoId);
+        if (!ev) {
+          alert("Não há evento confirmado disponível para inscrição.");
+          return;
+        }
+
+        const nome = document.getElementById("insc-nome").value.trim();
+        const cpf = limparCPF(document.getElementById("insc-cpf").value);
+        const email = document.getElementById("insc-email").value.trim();
+        const whats = document.getElementById("insc-whats").value.trim();
+        const orgao = document.getElementById("insc-orgao").value.trim();
+        const cargo = document.getElementById("insc-cargo").value.trim();
+
+        if (cpf.length !== 11) {
+          alert("Informe um CPF válido com 11 dígitos.");
+          return;
+        }
+
+        const btn = document.getElementById("btn-inscrever");
+        btn.disabled = true;
+        btn.innerText = "Confirmando inscrição...";
+
+        const protocolo = "EVT-" + Math.floor(100000 + Math.random() * 900000);
+        const codigoCert = "SEGOV-" + new Date().getFullYear() + "-" + Math.floor(100000 + Math.random() * 900000);
+
+        const { data, error } = await supabaseClient
+          .from("participantes_eventos_segov")
+          .insert([{
+            evento_id: eventoId,
+            protocolo,
+            codigo_certificado: codigoCert,
+            nome_completo: nome,
+            cpf,
+            orgao_instituicao: orgao,
+            cargo_funcao: cargo,
+            whatsapp: whats,
+            email,
+          }])
+          .select()
+          .single();
+
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-check mr-1.5"></i> Finalizar Inscrição';
+
+        if (error) {
+          alert(
+            error.code === "23505"
+              ? "Este CPF já possui inscrição neste evento. Clique em 'Consultar Minha Credencial'."
+              : "Erro: " + error.message
+          );
+          return;
+        }
+
+        await enfileirarEmail(
+          eventoId,
+          data.id,
+          "CONFIRMACAO_QRCODE",
+          email,
+          nome,
+          `Confirmação de Inscrição — ${ev.titulo}`,
+          {
+            protocolo,
+            nome_completo: nome,
+            cpf,
+            orgao_instituicao: orgao,
+            evento_titulo: ev.titulo,
+            data_evento: ev.data_evento,
+            local_evento: ev.local_evento,
+            qrcode_url: `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(protocolo)}`
+          }
+        );
+
+        exibirCredencial(data, ev);
+      }
+
+      async function recuperarCredencial() {
+        const cpfDigitado = prompt("Digite o CPF cadastrado:");
+        if (!cpfDigitado) return;
+        const cpf = limparCPF(cpfDigitado);
+        const eventoId = Number(document.getElementById("insc-evento").value);
+
+        const { data } = await supabaseClient
+          .from("participantes_eventos_segov")
+          .select("*, eventos_segov(*)")
+          .eq("cpf", cpf)
+          .eq("evento_id", eventoId)
+          .maybeSingle();
+
+        if (!data) {
+          alert("Inscrição não encontrada para este CPF neste evento.");
+          return;
+        }
+        exibirCredencial(data, data.eventos_segov);
+      }
+
+      function exibirCredencial(participante, evento) {
+        document.getElementById("cred-protocolo").innerText = participante.protocolo;
+        document.getElementById("cred-dados").innerHTML = `
+          <p><strong>Participante:</strong> ${participante.nome_completo}</p>
+          <p><strong>Órgão/Instituição:</strong> ${participante.orgao_instituicao}</p>
+          <p><strong>Evento:</strong> ${evento.titulo}</p>
+          <p><strong>Data / Local:</strong> ${evento.data_evento} • ${evento.local_evento}</p>
+        `;
+        const qrContainer = document.getElementById("cred-qrcode");
+        qrContainer.innerHTML = "";
+        new QRCode(qrContainer, {
+          text: participante.protocolo,
+          width: 150,
+          height: 150,
+          colorDark: "#004d2c",
+          colorLight: "#ffffff",
+        });
+        document.getElementById("box-credencial").classList.remove("hidden");
+        document.getElementById("box-credencial").scrollIntoView({ behavior: "smooth" });
+      }
+
+      // =========================================================
+      // GESTÃO ADMINISTRATIVA DE EVENTOS
+      // =========================================================
+      async function criarNovoEvento(e) {
+        e.preventDefault();
+        const regra = document.getElementById("ev-regra").value;
+        const confirmado = document.getElementById("ev-confirmar-ja").checked;
+
+        const payload = {
+          tipo_evento: document.getElementById("ev-tipo").value,
+          regra_certificado: regra,
+          titulo: document.getElementById("ev-titulo").value.trim(),
+          data_evento: document.getElementById("ev-data").value.trim(),
+          carga_horaria: document.getElementById("ev-carga").value.trim(),
+          encontros_totais: Number(document.getElementById("ev-encontros").value),
+          presenca_minima: Number(document.getElementById("ev-minima").value),
+          local_evento: document.getElementById("ev-local").value.trim(),
+          certificado_liberado: regra === "CHECKIN",
+          confirmado_publico: confirmado,
+          ativo: true,
+        };
+
+        const { error } = await supabaseClient.from("eventos_segov").insert([payload]);
+        if (error) {
+          alert("Erro ao salvar evento: " + error.message);
+          return;
+        }
+        alert(
+          confirmado
+            ? "Evento salvo e já disponível na tela de inscrição do cidadão!"
+            : "Evento salvo como rascunho interno. Clique em 'Confirmar p/ Cidadão' quando quiser liberar a inscrição."
+        );
+        e.target.reset();
+        carregarEventos();
+      }
+
+      function renderizarGestaoEventos() {
+        document.getElementById("lista-eventos-gestao").innerHTML = listaEventos
+          .map(
+            (ev) => `
+          <div class="p-4 border rounded-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-slate-50">
+            <div>
+              <span class="text-[11px] font-bold uppercase px-2 py-0.5 rounded ${ev.confirmado_publico ? "bg-emerald-100 text-emerald-900" : "bg-amber-100 text-amber-900"}">
+                ${ev.confirmado_publico ? "Disponível ao Cidadão" : "Rascunho Interno"}
+              </span>
+              <span class="text-[11px] font-mono ml-1 px-2 py-0.5 rounded bg-slate-200 text-slate-800">${ev.regra_certificado}</span>
+              <h4 class="font-bold text-sm text-slate-900 mt-1">${ev.titulo}</h4>
+              <p class="text-xs text-slate-500">${ev.data_evento} • ${ev.carga_horaria}</p>
+            </div>
+            <div class="flex flex-wrap gap-2 text-xs">
+              <button onclick="alternarStatusEvento(${ev.id}, 'confirmado_publico', ${!ev.confirmado_publico})" class="px-3 py-1.5 rounded font-bold ${ev.confirmado_publico ? "bg-slate-700 text-white" : "bg-acre text-white"}">
+                ${ev.confirmado_publico ? "Ocultar do Cidadão" : "Confirmar p/ Cidadão"}
+              </button>
+              <button onclick="alternarStatusEvento(${ev.id}, 'certificado_liberado', ${!ev.certificado_liberado})" class="px-3 py-1.5 rounded font-semibold ${ev.certificado_liberado ? "bg-blue-600 text-white" : "bg-amber-200 text-amber-900"}">
+                ${ev.certificado_liberado ? "Certificados Liberados" : "Liberar Certificados"}
+              </button>
+            </div>
+          </div>`
+          )
+          .join("");
+      }
+
+      async function alternarStatusEvento(id, campo, valor) {
+        await supabaseClient.from("eventos_segov").update({ [campo]: valor }).eq("id", id);
+        carregarEventos();
+      }
+
+      // =========================================================
+      // MODELOS PRONTOS E EDITÁVEIS DE CERTIFICADO
+      // =========================================================
+      async function carregarDadosNoEditor() {
+        const eventoId = Number(document.getElementById("editor-evento-select").value);
+        const ev = listaEventos.find((e) => e.id === eventoId);
+        if (!ev) return;
+
+        document.getElementById("editor-modelo-select").value = ev.modelo_certificado || "CLASSICO_ACRE";
+        document.getElementById("editor-texto-cert").value =
+          ev.texto_certificado ||
+          'Certificamos que {NOME}, inscrito(a) sob o CPF nº {CPF}, participou do(a) {TIPO} "{EVENTO}", realizado(a) em {DATA}, no(a) {LOCAL}, com carga horária total de {CARGA_HORARIA}.';
+        document.getElementById("editor-conteudo-prog").value = ev.conteudo_programatico || "";
+        document.getElementById("editor-ass1-nome").value = ev.assinatura_1_nome || "";
+        document.getElementById("editor-ass1-cargo").value = ev.assinatura_1_cargo || "";
+        document.getElementById("editor-ass2-nome").value = ev.assinatura_2_nome || "";
+        document.getElementById("editor-ass2-cargo").value = ev.assinatura_2_cargo || "";
+
+        const { data: inscritos } = await supabaseClient
+          .from("participantes_eventos_segov")
+          .select("*")
+          .eq("evento_id", eventoId)
+          .order("nome_completo");
+
+        participantesEditorAtual = inscritos || [];
+        document.getElementById("editor-participante-teste").innerHTML =
+          '<option value="">Participante Exemplo (SEGOV/AC)</option>' +
+          participantesEditorAtual
+            .map((p) => `<option value="${p.id}">${p.nome_completo} (${p.orgao_instituicao})</option>`)
+            .join("");
+
+        atualizarPreviewEditor();
+      }
+
+      function inserirTagTexto(tag) {
+        const textarea = document.getElementById("editor-texto-cert");
+        textarea.value += " " + tag;
+        atualizarPreviewEditor();
+      }
+
+      function atualizarPreviewEditor() {
+        const eventoId = Number(document.getElementById("editor-evento-select").value);
+        const ev = listaEventos.find((e) => e.id === eventoId);
+        if (!ev) return;
+
+        const partId = Number(document.getElementById("editor-participante-teste").value);
+        const part = participantesEditorAtual.find((p) => p.id === partId) || {
+          nome_completo: "PARTICIPANTE EXEMPLO",
+          cpf: "00011122233",
+          orgao_instituicao: "SEGOV/AC",
+          codigo_certificado: "SEGOV-2026-000000",
+        };
+
+        renderizarCertificadoHTML(part, ev, {
+          modelo: document.getElementById("editor-modelo-select").value,
+          texto: document.getElementById("editor-texto-cert").value,
+          conteudo: document.getElementById("editor-conteudo-prog").value,
+          ass1Nome: document.getElementById("editor-ass1-nome").value,
+          ass1Cargo: document.getElementById("editor-ass1-cargo").value,
+          ass2Nome: document.getElementById("editor-ass2-nome").value,
+          ass2Cargo: document.getElementById("editor-ass2-cargo").value,
+        });
+      }
+
+      async function salvarModeloCertificadoEvento() {
+        const eventoId = Number(document.getElementById("editor-evento-select").value);
+        if (!eventoId) return;
+
+        const { error } = await supabaseClient
+          .from("eventos_segov")
+          .update({
+            modelo_certificado: document.getElementById("editor-modelo-select").value,
+            texto_certificado: document.getElementById("editor-texto-cert").value,
+            conteudo_programatico: document.getElementById("editor-conteudo-prog").value,
+            assinatura_1_nome: document.getElementById("editor-ass1-nome").value,
+            assinatura_1_cargo: document.getElementById("editor-ass1-cargo").value,
+            assinatura_2_nome: document.getElementById("editor-ass2-nome").value,
+            assinatura_2_cargo: document.getElementById("editor-ass2-cargo").value,
+          })
+          .eq("id", eventoId);
+
+        if (error) {
+          alert("Erro ao salvar modelo: " + error.message);
+          return;
+        }
+        alert("Modelo salvo para este evento!");
+        carregarEventos();
+      }
+
+      function renderizarCertificadoHTML(participante, ev, custom = null) {
+        const modelo = custom?.modelo || ev.modelo_certificado || "CLASSICO_ACRE";
+        const templateTexto =
+          custom?.texto ||
+          ev.texto_certificado ||
+          'Certificamos que {NOME}, inscrito(a) sob o CPF nº {CPF}, participou do(a) {TIPO} "{EVENTO}", realizado(a) em {DATA}, no(a) {LOCAL}, com carga horária total de {CARGA_HORARIA}.';
+        const conteudoProg = custom?.conteudo !== undefined ? custom.conteudo : ev.conteudo_programatico || "";
+        const ass1Nome = custom?.ass1Nome ?? ev.assinatura_1_nome;
+        const ass1Cargo = custom?.ass1Cargo ?? ev.assinatura_1_cargo;
+        const ass2Nome = custom?.ass2Nome ?? ev.assinatura_2_nome;
+        const ass2Cargo = custom?.ass2Cargo ?? ev.assinatura_2_cargo;
+
+        const cpfFormatado = participante.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
+
+        const textoFinal = templateTexto
+          .replaceAll("{NOME}", `<strong class="text-green-950 uppercase">${participante.nome_completo}</strong>`)
+          .replaceAll("{CPF}", `<strong>${cpfFormatado}</strong>`)
+          .replaceAll("{ORGAO}", `<strong>${participante.orgao_instituicao || ""}</strong>`)
+          .replaceAll("{TIPO}", ev.tipo_evento)
+          .replaceAll("{EVENTO}", `<strong>${ev.titulo}</strong>`)
+          .replaceAll("{DATA}", `<strong>${ev.data_evento}</strong>`)
+          .replaceAll("{LOCAL}", ev.local_evento)
+          .replaceAll("{CARGA_HORARIA}", `<strong>${ev.carga_horaria}</strong>`);
+
+        let estiloBorda = "bg-white border-[10px] border-double border-green-900 p-8 md:p-12 rounded-lg shadow-lg relative overflow-hidden";
+        let faixaSuperior = `<div class="absolute top-0 left-0 w-3 h-full bg-gradient-to-b from-green-700 via-yellow-400 to-red-600"></div>`;
+
+        if (modelo === "MODERNO_SEGOV") {
+          estiloBorda = "bg-white border-2 border-slate-800 p-8 md:p-12 rounded-xl shadow-lg relative overflow-hidden";
+          faixaSuperior = `<div class="absolute top-0 left-0 w-full h-3 bg-gradient-to-r from-green-800 via-emerald-600 to-yellow-400"></div>`;
+        } else if (modelo === "CURSO_PROGRAMATICO") {
+          estiloBorda = "bg-white border-4 border-emerald-800 p-8 md:p-10 rounded-lg shadow-lg relative overflow-hidden";
+          faixaSuperior = `<div class="absolute top-0 right-0 w-4 h-full bg-emerald-800"></div>`;
+        }
+
+        const blocoConteudo =
+          modelo === "CURSO_PROGRAMATICO" && conteudoProg
+            ? `<div class="mt-5 p-3 bg-slate-50 border border-slate-200 rounded text-left text-xs text-slate-700">
+                 <p class="font-bold uppercase text-green-900 mb-1">Conteúdo Programático:</p>
+                 <p>${conteudoProg}</p>
+               </div>`
+            : "";
+
+        const alvo = document.getElementById("print-certificado-a4");
+        alvo.className = estiloBorda;
+        alvo.innerHTML = `
+          ${faixaSuperior}
+          <div class="text-center border-b-2 border-green-800 pb-4">
+            <p class="text-xs font-extrabold tracking-widest uppercase text-green-900">Governo do Estado do Acre</p>
+            <h3 class="text-base font-bold text-slate-800 uppercase">Secretaria de Estado de Governo — SEGOV/AC</h3>
+            <h2 class="text-3xl md:text-4xl font-black text-green-900 tracking-wide mt-2">CERTIFICADO</h2>
+          </div>
+
+          <div class="my-7 text-center text-base md:text-lg leading-relaxed text-slate-800 px-4">
+            ${textoFinal}
+            ${blocoConteudo}
+          </div>
+
+          <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-8 text-center text-xs text-slate-700 px-6">
+            <div>
+              <div class="border-t border-slate-700 pt-2 font-bold text-slate-900">${ass1Nome}</div>
+              <div class="text-slate-600">${ass1Cargo}</div>
+            </div>
+            ${
+              ass2Nome
+                ? `<div>
+                    <div class="border-t border-slate-700 pt-2 font-bold text-slate-900">${ass2Nome}</div>
+                    <div class="text-slate-600">${ass2Cargo}</div>
+                  </div>`
+                : ""
+            }
+          </div>
+
+          <div class="mt-7 pt-3 border-t border-slate-200 flex justify-between items-center gap-3 text-[11px] text-slate-500">
+            <div>
+              <p><strong>Autenticidade:</strong> <span class="font-mono text-slate-800">${participante.codigo_certificado}</span></p>
+              <p>Emitido pelo sistema SisGovEventos (SEGOV/NUTIN).</p>
+            </div>
+            <div id="cert-qr-dinamico"></div>
+          </div>
+        `;
+
+        new QRCode(document.getElementById("cert-qr-dinamico"), {
+          text: participante.codigo_certificado,
+          width: 60,
+          height: 60,
+        });
+      }
+
+      // =========================================================
+      // PORTARIA & PRESENÇA
+      // =========================================================
+      function verificarAptidaoCertificado(participante, ev) {
+        if (ev.regra_certificado === "CHECKIN") return participante.presente === true;
+        if (ev.regra_certificado === "PRESENCA_MINIMA") return participante.presencas_qtd >= (ev.presenca_minima || 1);
+        return participante.presente === true && ev.certificado_liberado === true;
+      }
+
+      async function carregarListaPortaria() {
+        if (!adminAutenticado) return;
+        const eventoId = Number(document.getElementById("portaria-evento-select").value);
+        const ev = listaEventos.find((e) => e.id === eventoId);
+        if (!ev) return;
+
+        const nomesRegra = {
+          CHECKIN: "Regra: Liberação automática no Check-in",
+          PRESENCA_MINIMA: `Regra: Liberação ao atingir ${ev.presenca_minima}/${ev.encontros_totais} presenças`,
+          FINAL_EVENTO: "Regra: Liberação no encerramento do evento",
+        };
+        document.getElementById("portaria-regra-info").innerText = nomesRegra[ev.regra_certificado];
+
+        const { data } = await supabaseClient
+          .from("participantes_eventos_segov")
+          .select("*")
+          .eq("evento_id", eventoId)
+          .order("nome_completo");
+
+        participantesPortariaAtual = data || [];
+        const aptos = participantesPortariaAtual.filter((p) => verificarAptidaoCertificado(p, ev)).length;
+        document.getElementById("portaria-resumo-contagem").innerText =
+          `Inscritos: ${participantesPortariaAtual.length} | Aptos: ${aptos}`;
+
+        document.getElementById("tabela-portaria").innerHTML = participantesPortariaAtual
+          .map((p) => {
+            const apto = verificarAptidaoCertificado(p, ev);
+            return `<tr>
+              <td class="py-2.5 px-4 font-semibold">${p.nome_completo}<br><span class="text-[11px] text-slate-400 font-mono">${p.protocolo}</span></td>
+              <td class="py-2.5 px-4 text-xs">${p.email}<br><span class="font-mono text-slate-500">${p.cpf}</span></td>
+              <td class="py-2.5 px-4 text-center font-bold">${p.presencas_qtd} / ${ev.encontros_totais}</td>
+              <td class="py-2.5 px-4 text-center">
+                ${
+                  apto
+                    ? `<span class="bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded">Liberado ${p.certificado_enviado ? "✓" : ""}</span>`
+                    : `<span class="bg-slate-100 text-slate-600 px-2 py-0.5 rounded">Pendente</span>`
+                }
+              </td>
+              <td class="py-2.5 px-4 text-center">
+                <button onclick="registrarPresencaParticipante(${p.id})" class="bg-acre hover:bg-acre-dark text-white font-bold px-3 py-1 rounded">+ Presença</button>
+              </td>
+            </tr>`;
+          })
+          .join("");
+      }
+
+      async function checkinRapido(e) {
+        e.preventDefault();
+        const termo = document.getElementById("portaria-busca-rapida").value.trim().toUpperCase();
+        if (!termo) return;
+        const p = participantesPortariaAtual.find(
+          (item) =>
+            item.protocolo.toUpperCase() === termo ||
+            item.cpf === limparCPF(termo) ||
+            item.nome_completo.toUpperCase().includes(termo)
+        );
+        if (!p) {
+          alert("Participante não localizado neste evento.");
+          return;
+        }
+        await registrarPresencaParticipante(p.id);
+        document.getElementById("portaria-busca-rapida").value = "";
+      }
+
+      async function registrarPresencaParticipante(participanteId) {
+        const eventoId = Number(document.getElementById("portaria-evento-select").value);
+        const ev = listaEventos.find((e) => e.id === eventoId);
+        const p = participantesPortariaAtual.find((x) => x.id === participanteId);
+        if (!p || !ev) return;
+
+        const novaQtd = (p.presencas_qtd || 0) + 1;
+        const atualizado = { ...p, presencas_qtd: novaQtd, presente: true };
+        const ficouApto = verificarAptidaoCertificado(atualizado, ev);
+
+        let enfileiradoAgora = p.certificado_enviado;
+        if (ficouApto && !p.certificado_enviado) {
+          await enfileirarEmail(
+            eventoId,
+            p.id,
+            "CERTIFICADO_LIBERADO",
+            p.email,
+            p.nome_completo,
+            `Certificado Disponível — ${ev.titulo}`,
+            {
+              nome_completo: p.nome_completo,
+              cpf: p.cpf,
+              orgao_instituicao: p.orgao_instituicao,
+              evento_titulo: ev.titulo,
+              data_evento: ev.data_evento,
+              carga_horaria: ev.carga_horaria,
+              codigo_certificado: p.codigo_certificado,
+            }
+          );
+          enfileiradoAgora = true;
+        }
+
+        await supabaseClient
+          .from("participantes_eventos_segov")
+          .update({
+            presente: true,
+            presencas_qtd: novaQtd,
+            checkin_em: new Date().toISOString(),
+            certificado_enviado: enfileiradoAgora,
+          })
+          .eq("id", participanteId);
+
+        carregarListaPortaria();
+      }
+
+      async function enfileirarCertificadosEmMassa() {
+        const eventoId = Number(document.getElementById("portaria-evento-select").value);
+        const ev = listaEventos.find((e) => e.id === eventoId);
+        if (!ev) return;
+
+        await supabaseClient.from("eventos_segov").update({ certificado_liberado: true }).eq("id", eventoId);
+
+        const aptosSemFila = participantesPortariaAtual.filter((p) => p.presente && !p.certificado_enviado);
+
+        for (const p of aptosSemFila) {
+          await enfileirarEmail(
+            eventoId,
+            p.id,
+            "CERTIFICADO_LIBERADO",
+            p.email,
+            p.nome_completo,
+            `Certificado Liberado — ${ev.titulo}`,
+            {
+              nome_completo: p.nome_completo,
+              cpf: p.cpf,
+              orgao_instituicao: p.orgao_instituicao,
+              evento_titulo: ev.titulo,
+              data_evento: ev.data_evento,
+              carga_horaria: ev.carga_horaria,
+              codigo_certificado: p.codigo_certificado,
+            }
+          );
+          await supabaseClient.from("participantes_eventos_segov").update({ certificado_enviado: true }).eq("id", p.id);
+        }
+
+        alert(`Certificados liberados! ${aptosSemFila.length} registro(s) enfileirado(s) para envio em massa.`);
+        await carregarEventos();
+        carregarListaPortaria();
+        atualizarResumoFila();
+      }
+
+      async function atualizarResumoFila() {
+        const { data } = await supabaseClient.from("fila_emails_segov").select("status");
+        if (!data) return;
+        const pendentes = data.filter((x) => x.status === "PENDENTE").length;
+        const enviados = data.filter((x) => x.status === "ENVIADO").length;
+        document.getElementById("resumo-fila-emails").innerText = `Pendentes: ${pendentes} | Enviados: ${enviados}`;
+      }
+
+      function exportarCSVEvento() {
+        if (participantesPortariaAtual.length === 0) return;
+        const linhas = [
+          ["Nome", "CPF", "Email", "Orgao", "Protocolo", "Presencas", "Codigo Certificado"],
+          ...participantesPortariaAtual.map((p) => [
+            `"${p.nome_completo}"`,
+            p.cpf,
+            p.email,
+            `"${p.orgao_instituicao}"`,
+            p.protocolo,
+            p.presencas_qtd,
+            p.codigo_certificado,
+          ]),
+        ];
+        const csv = "\uFEFF" + linhas.map((l) => l.join(";")).join("\n");
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = "participantes_sisgoveventos.csv";
+        link.click();
+      }
+
+      function imprimirArea(elementId) {
+        document.querySelectorAll(".area-print-ativa").forEach((el) => el.classList.remove("area-print-ativa"));
+        const alvo = document.getElementById(elementId);
+        if (!alvo) return;
+        alvo.classList.add("area-print-ativa");
+        window.print();
+        setTimeout(() => alvo.classList.remove("area-print-ativa"), 500);
+      }
+
+      carregarEventos();
+    </script>
+  </body>
+</html>
