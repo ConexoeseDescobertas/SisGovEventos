@@ -197,16 +197,28 @@
       </section>
 
       <!-- ========================================================= -->
-      <!-- ADMIN 1: CONFIGURAR E CONFIRMAR EVENTOS                   -->
+      <!-- ADMIN 1: CRIAR, EDITAR E CONFIRMAR EVENTOS                -->
       <!-- ========================================================= -->
       <section id="sec-gestao" class="hidden max-w-5xl mx-auto space-y-6">
         <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-          <div class="bg-acre text-white px-6 py-4">
-            <h2 class="font-bold text-base"><i class="fa-solid fa-calendar-plus mr-1.5"></i>Cadastrar Novo Evento Interno</h2>
-            <p class="text-xs text-green-100">Salve como rascunho para editar o certificado antes ou marque para liberar imediatamente ao cidadão.</p>
+          <div class="bg-acre text-white px-6 py-4 flex flex-wrap justify-between items-center gap-3">
+            <div>
+              <h2 id="titulo-form-evento" class="font-bold text-base"><i class="fa-solid fa-calendar-plus mr-1.5"></i>Cadastrar Novo Evento Interno</h2>
+              <p class="text-xs text-green-100">Crie ou edite eventos diretamente pelo painel administrativo.</p>
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <button type="button" id="btn-cancelar-edicao" onclick="cancelarEdicaoEvento()" class="hidden bg-white/20 hover:bg-white/30 text-white text-xs font-bold px-3 py-1.5 rounded-lg">
+                Cancelar Edição
+              </button>
+              <button type="button" onclick="gerarCincoEventosTeste()" class="bg-yellow-400 hover:bg-yellow-300 text-green-950 text-xs font-extrabold px-3 py-1.5 rounded-lg shadow transition">
+                <i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Criar 5 Eventos Fictícios de Teste
+              </button>
+            </div>
           </div>
 
-          <form onsubmit="criarNovoEvento(event)" class="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <form onsubmit="salvarEventoAdmin(event)" class="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <input type="hidden" id="ev-edit-id" value="" />
+
             <div>
               <label class="block text-xs font-bold text-slate-700 mb-1">Tipo de Evento *</label>
               <select id="ev-tipo" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm">
@@ -251,10 +263,10 @@
             </div>
             <div class="md:col-span-2 flex items-center gap-2">
               <input type="checkbox" id="ev-confirmar-ja" class="w-4 h-4 accent-green-700" />
-              <label for="ev-confirmar-ja" class="text-xs font-bold text-slate-700">Confirmar e liberar inscrição para o cidadão imediatamente</label>
+              <label for="ev-confirmar-ja" class="text-xs font-bold text-slate-700">Confirmar e disponibilizar para inscrição do cidadão</label>
             </div>
             <div class="md:col-span-2">
-              <button type="submit" class="bg-acre hover:bg-acre-dark text-white font-bold px-6 py-2.5 rounded-lg text-sm transition">
+              <button type="submit" id="btn-salvar-evento" class="bg-acre hover:bg-acre-dark text-white font-bold px-6 py-2.5 rounded-lg text-sm transition">
                 Salvar Evento
               </button>
             </div>
@@ -262,7 +274,7 @@
         </div>
 
         <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-          <h3 class="font-bold text-base mb-4">Eventos Cadastrados</h3>
+          <h3 class="font-bold text-base mb-4">Eventos Cadastrados (<span id="total-eventos-admin">0</span>)</h3>
           <div id="lista-eventos-gestao" class="space-y-3"></div>
         </div>
       </section>
@@ -367,7 +379,6 @@
             <button type="submit" class="bg-acre hover:bg-acre-dark text-white font-bold px-6 py-2.5 rounded-lg text-sm">Registrar Presença (+1)</button>
           </form>
 
-          <!-- Barra de Filtros de Status -->
           <div class="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-100">
             <div class="flex flex-wrap gap-1.5">
               <button type="button" id="filtro-TODOS" onclick="definirFiltroPortaria('TODOS')" class="filtro-portaria-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-acre text-white transition">
@@ -680,10 +691,11 @@
       }
 
       // =========================================================
-      // GESTÃO ADMINISTRATIVA DE EVENTOS
+      // GESTÃO ADMINISTRATIVA DE EVENTOS (CRIAR, EDITAR, EXCLUIR)
       // =========================================================
-      async function criarNovoEvento(e) {
+      async function salvarEventoAdmin(e) {
         e.preventDefault();
+        const editId = document.getElementById("ev-edit-id").value;
         const regra = document.getElementById("ev-regra").value;
         const confirmado = document.getElementById("ev-confirmar-ja").checked;
 
@@ -696,44 +708,195 @@
           encontros_totais: Number(document.getElementById("ev-encontros").value),
           presenca_minima: Number(document.getElementById("ev-minima").value),
           local_evento: document.getElementById("ev-local").value.trim(),
-          certificado_liberado: regra === "CHECKIN",
           confirmado_publico: confirmado,
           ativo: true,
         };
 
-        const { error } = await supabaseClient.from("eventos_segov").insert([payload]);
+        if (editId) {
+          const { error } = await supabaseClient.from("eventos_segov").update(payload).eq("id", Number(editId));
+          if (error) {
+            alert("Erro ao atualizar evento: " + error.message);
+            return;
+          }
+          alert("Evento atualizado com sucesso!");
+        } else {
+          payload.certificado_liberado = regra === "CHECKIN";
+          const { error } = await supabaseClient.from("eventos_segov").insert([payload]);
+          if (error) {
+            alert("Erro ao salvar evento: " + error.message);
+            return;
+          }
+          alert(
+            confirmado
+              ? "Evento criado e já disponível na tela de inscrição do cidadão!"
+              : "Evento salvo como rascunho interno."
+          );
+        }
+
+        cancelarEdicaoEvento();
+        carregarEventos();
+      }
+
+      function prepararEdicaoEvento(id) {
+        const ev = listaEventos.find((item) => item.id === id);
+        if (!ev) return;
+
+        document.getElementById("ev-edit-id").value = ev.id;
+        document.getElementById("ev-tipo").value = ev.tipo_evento;
+        document.getElementById("ev-regra").value = ev.regra_certificado;
+        document.getElementById("ev-titulo").value = ev.titulo;
+        document.getElementById("ev-data").value = ev.data_evento;
+        document.getElementById("ev-carga").value = ev.carga_horaria;
+        document.getElementById("ev-encontros").value = ev.encontros_totais || 1;
+        document.getElementById("ev-minima").value = ev.presenca_minima || 1;
+        document.getElementById("ev-local").value = ev.local_evento;
+        document.getElementById("ev-confirmar-ja").checked = ev.confirmado_publico === true;
+
+        document.getElementById("titulo-form-evento").innerHTML =
+          `<i class="fa-solid fa-pen-to-square mr-1.5"></i>Editando Evento #${ev.id}`;
+        document.getElementById("btn-salvar-evento").innerText = "Salvar Alterações";
+        document.getElementById("btn-cancelar-edicao").classList.remove("hidden");
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+
+      function cancelarEdicaoEvento() {
+        document.getElementById("ev-edit-id").value = "";
+        document.getElementById("ev-titulo").value = "";
+        document.getElementById("ev-data").value = "";
+        document.getElementById("ev-carga").value = "";
+        document.getElementById("ev-encontros").value = "1";
+        document.getElementById("ev-minima").value = "1";
+        document.getElementById("ev-local").value =
+          "Auditório da SEGOV - Rua João Donato, 1624, Ipase, Rio Branco/AC";
+        document.getElementById("ev-confirmar-ja").checked = false;
+
+        document.getElementById("titulo-form-evento").innerHTML =
+          '<i class="fa-solid fa-calendar-plus mr-1.5"></i>Cadastrar Novo Evento Interno';
+        document.getElementById("btn-salvar-evento").innerText = "Salvar Evento";
+        document.getElementById("btn-cancelar-edicao").classList.add("hidden");
+      }
+
+      async function excluirEventoAdmin(id, titulo) {
+        if (!confirm(`Deseja realmente excluir o evento "${titulo}"?`)) return;
+        const { error } = await supabaseClient.from("eventos_segov").delete().eq("id", id);
         if (error) {
-          alert("Erro ao salvar evento: " + error.message);
+          alert("Erro ao excluir evento: " + error.message);
           return;
         }
-        alert(
-          confirmado
-            ? "Evento salvo e já disponível para inscrição!"
-            : "Evento salvo como rascunho interno."
-        );
-        e.target.reset();
+        carregarEventos();
+      }
+
+      async function gerarCincoEventosTeste() {
+        if (!confirm("Inserir 5 eventos fictícios da SEGOV/AC no banco para testar inscrições e portaria?")) return;
+
+        const baseLocal = "Auditório da SEGOV - Rua João Donato, 1624, Ipase, Rio Branco/AC";
+        const cincoEventos = [
+          {
+            tipo_evento: "Palestra / Conferência",
+            titulo: "[TESTE] Fórum de Governança Digital e Inovação Pública",
+            data_evento: "05 de Dezembro de 2026",
+            carga_horaria: "4 horas",
+            local_evento: baseLocal,
+            regra_certificado: "CHECKIN",
+            encontros_totais: 1,
+            presenca_minima: 1,
+            modelo_certificado: "MODERNO_SEGOV",
+            certificado_liberado: true,
+            confirmado_publico: true,
+            ativo: true,
+          },
+          {
+            tipo_evento: "Curso de Capacitação",
+            titulo: "[TESTE] Capacitação em Tramitação Eletrônica no SEI",
+            data_evento: "08 a 11 de Dezembro de 2026",
+            carga_horaria: "16 horas",
+            local_evento: baseLocal,
+            regra_certificado: "PRESENCA_MINIMA",
+            encontros_totais: 4,
+            presenca_minima: 3,
+            modelo_certificado: "CURSO_PROGRAMATICO",
+            conteudo_programatico: "Módulo I: Autuação; Módulo II: Despacho e assinatura; Módulo III: Segurança da informação.",
+            certificado_liberado: false,
+            confirmado_publico: true,
+            ativo: true,
+          },
+          {
+            tipo_evento: "Aulão / Seminário",
+            titulo: "[TESTE] Seminário de Planejamento e Contratações Públicas",
+            data_evento: "14 de Dezembro de 2026",
+            carga_horaria: "8 horas",
+            local_evento: baseLocal,
+            regra_certificado: "FINAL_EVENTO",
+            encontros_totais: 1,
+            presenca_minima: 1,
+            modelo_certificado: "CLASSICO_ACRE",
+            certificado_liberado: false,
+            confirmado_publico: true,
+            ativo: true,
+          },
+          {
+            tipo_evento: "Workshop",
+            titulo: "[TESTE] Workshop de Gestão Patrimonial e Inventário",
+            data_evento: "17 de Dezembro de 2026",
+            carga_horaria: "6 horas",
+            local_evento: baseLocal,
+            regra_certificado: "CHECKIN",
+            encontros_totais: 1,
+            presenca_minima: 1,
+            modelo_certificado: "CURSO_PROGRAMATICO",
+            conteudo_programatico: "Tombamento, termos de responsabilidade e conferência patrimonial.",
+            certificado_liberado: true,
+            confirmado_publico: true,
+            ativo: true,
+          },
+          {
+            tipo_evento: "Evento Institucional",
+            titulo: "[TESTE] Encontro Interno das Equipes (Rascunho)",
+            data_evento: "21 de Dezembro de 2026",
+            carga_horaria: "4 horas",
+            local_evento: baseLocal,
+            regra_certificado: "FINAL_EVENTO",
+            encontros_totais: 1,
+            presenca_minima: 1,
+            modelo_certificado: "CLASSICO_ACRE",
+            certificado_liberado: false,
+            confirmado_publico: false,
+            ativo: true,
+          },
+        ];
+
+        const { error } = await supabaseClient.from("eventos_segov").insert(cincoEventos);
+        if (error) {
+          alert("Erro ao inserir eventos de teste: " + error.message);
+          return;
+        }
+        alert("5 eventos fictícios criados! 4 já estão disponíveis ao cidadão e 1 está como rascunho.");
         carregarEventos();
       }
 
       function renderizarGestaoEventos() {
+        document.getElementById("total-eventos-admin").innerText = listaEventos.length;
         document.getElementById("lista-eventos-gestao").innerHTML = listaEventos
           .map(
             (ev) => `
-          <div class="p-4 border rounded-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-slate-50">
+          <div class="p-4 border rounded-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-3 bg-slate-50">
             <div>
               <span class="text-[11px] font-bold uppercase px-2 py-0.5 rounded ${ev.confirmado_publico ? "bg-emerald-100 text-emerald-900" : "bg-amber-100 text-amber-900"}">
                 ${ev.confirmado_publico ? "Disponível ao Cidadão" : "Rascunho Interno"}
               </span>
               <span class="text-[11px] font-mono ml-1 px-2 py-0.5 rounded bg-slate-200 text-slate-800">${ev.regra_certificado}</span>
               <h4 class="font-bold text-sm text-slate-900 mt-1">${ev.titulo}</h4>
-              <p class="text-xs text-slate-500">${ev.data_evento} • ${ev.carga_horaria}</p>
+              <p class="text-xs text-slate-500">${ev.data_evento} • ${ev.carga_horaria} • ${ev.local_evento}</p>
             </div>
             <div class="flex flex-wrap gap-2 text-xs">
               <button onclick="alternarStatusEvento(${ev.id}, 'confirmado_publico', ${!ev.confirmado_publico})" class="px-3 py-1.5 rounded font-bold ${ev.confirmado_publico ? "bg-slate-700 text-white" : "bg-acre text-white"}">
                 ${ev.confirmado_publico ? "Ocultar do Cidadão" : "Confirmar p/ Cidadão"}
               </button>
-              <button onclick="alternarStatusEvento(${ev.id}, 'certificado_liberado', ${!ev.certificado_liberado})" class="px-3 py-1.5 rounded font-semibold ${ev.certificado_liberado ? "bg-blue-600 text-white" : "bg-amber-200 text-amber-900"}">
-                ${ev.certificado_liberado ? "Certificados Liberados" : "Liberar Certificados"}
+              <button onclick="prepararEdicaoEvento(${ev.id})" class="px-3 py-1.5 rounded font-semibold bg-amber-100 hover:bg-amber-200 text-amber-950">
+                <i class="fa-solid fa-pen mr-1"></i> Editar
+              </button>
+              <button onclick="excluirEventoAdmin(${ev.id}, '${ev.titulo.replace(/'/g, "\\'")}')" class="px-3 py-1.5 rounded font-semibold bg-red-100 hover:bg-red-200 text-red-700">
+                <i class="fa-solid fa-trash mr-1"></i> Excluir
               </button>
             </div>
           </div>`
@@ -934,264 +1097,4 @@
       }
 
       function definirFiltroPortaria(filtro) {
-        filtroPortariaAtual = filtro;
-        ["TODOS", "PRESENTES", "AUSENTES", "APTOS"].forEach((key) => {
-          const btn = document.getElementById("filtro-" + key);
-          if (!btn) return;
-          if (key === filtro) {
-            btn.className = "filtro-portaria-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-acre text-white transition";
-          } else {
-            btn.className = "filtro-portaria-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 transition";
-          }
-        });
-        renderizarTabelaPortaria();
-      }
-
-      function obterParticipantesFiltrados() {
-        const eventoId = Number(document.getElementById("portaria-evento-select").value);
-        const ev = listaEventos.find((e) => e.id === eventoId);
-        const termoBusca = (document.getElementById("portaria-filtro-texto")?.value || "").trim().toUpperCase();
-
-        return participantesPortariaAtual.filter((p) => {
-          const apto = ev ? verificarAptidaoCertificado(p, ev) : false;
-
-          if (filtroPortariaAtual === "PRESENTES" && !p.presente) return false;
-          if (filtroPortariaAtual === "AUSENTES" && p.presente) return false;
-          if (filtroPortariaAtual === "APTOS" && !apto) return false;
-
-          if (termoBusca) {
-            const match =
-              p.nome_completo.toUpperCase().includes(termoBusca) ||
-              (p.orgao_instituicao || "").toUpperCase().includes(termoBusca) ||
-              p.cpf.includes(limparCPF(termoBusca)) ||
-              p.protocolo.toUpperCase().includes(termoBusca);
-            if (!match) return false;
-          }
-
-          return true;
-        });
-      }
-
-      async function carregarListaPortaria() {
-        if (!adminAutenticado) return;
-        const eventoId = Number(document.getElementById("portaria-evento-select").value);
-        const ev = listaEventos.find((e) => e.id === eventoId);
-        if (!ev) return;
-
-        const nomesRegra = {
-          CHECKIN: "Regra: Liberação automática no Check-in",
-          PRESENCA_MINIMA: `Regra: Liberação ao atingir ${ev.presenca_minima}/${ev.encontros_totais} presenças`,
-          FINAL_EVENTO: "Regra: Liberação no encerramento do evento",
-        };
-        document.getElementById("portaria-regra-info").innerText = nomesRegra[ev.regra_certificado];
-
-        const { data } = await supabaseClient
-          .from("participantes_eventos_segov")
-          .select("*")
-          .eq("evento_id", eventoId)
-          .order("nome_completo");
-
-        participantesPortariaAtual = data || [];
-
-        const totalTodos = participantesPortariaAtual.length;
-        const totalPresentes = participantesPortariaAtual.filter((p) => p.presente).length;
-        const totalAusentes = totalTodos - totalPresentes;
-        const totalAptos = participantesPortariaAtual.filter((p) => verificarAptidaoCertificado(p, ev)).length;
-
-        document.getElementById("cnt-todos").innerText = totalTodos;
-        document.getElementById("cnt-presentes").innerText = totalPresentes;
-        document.getElementById("cnt-ausentes").innerText = totalAusentes;
-        document.getElementById("cnt-aptos").innerText = totalAptos;
-
-        renderizarTabelaPortaria();
-      }
-
-      function renderizarTabelaPortaria() {
-        const eventoId = Number(document.getElementById("portaria-evento-select").value);
-        const ev = listaEventos.find((e) => e.id === eventoId);
-        if (!ev) return;
-
-        const filtrados = obterParticipantesFiltrados();
-        document.getElementById("portaria-resumo-contagem").innerText =
-          `Exibindo: ${filtrados.length} de ${participantesPortariaAtual.length} inscrito(s)`;
-
-        if (filtrados.length === 0) {
-          document.getElementById("tabela-portaria").innerHTML = `
-            <tr>
-              <td colspan="6" class="py-6 px-4 text-center text-slate-500">
-                Nenhum participante encontrado para o filtro selecionado.
-              </td>
-            </tr>`;
-          return;
-        }
-
-        document.getElementById("tabela-portaria").innerHTML = filtrados
-          .map((p) => {
-            const apto = verificarAptidaoCertificado(p, ev);
-            return `<tr>
-              <td class="py-2.5 px-4 font-semibold">
-                ${p.nome_completo}
-                <br><span class="text-[11px] text-slate-500">${p.orgao_instituicao} • <span class="font-mono text-slate-400">${p.protocolo}</span></span>
-              </td>
-              <td class="py-2.5 px-4 text-xs">${p.email}<br><span class="font-mono text-slate-500">${p.cpf}</span></td>
-              <td class="py-2.5 px-4 text-center">
-                ${
-                  p.presente
-                    ? `<span class="bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded">Presente</span>`
-                    : `<span class="bg-red-100 text-red-700 font-semibold px-2 py-0.5 rounded">Ausente</span>`
-                }
-              </td>
-              <td class="py-2.5 px-4 text-center font-bold">${p.presencas_qtd} / ${ev.encontros_totais}</td>
-              <td class="py-2.5 px-4 text-center">
-                ${
-                  apto
-                    ? `<span class="bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded">Apto ${p.certificado_enviado ? "✓" : ""}</span>`
-                    : `<span class="bg-slate-100 text-slate-600 px-2 py-0.5 rounded">Pendente</span>`
-                }
-              </td>
-              <td class="py-2.5 px-4 text-center">
-                <button onclick="registrarPresencaParticipante(${p.id})" class="bg-acre hover:bg-acre-dark text-white font-bold px-3 py-1 rounded">+ Presença</button>
-              </td>
-            </tr>`;
-          })
-          .join("");
-      }
-
-      async function checkinRapido(e) {
-        e.preventDefault();
-        const termo = document.getElementById("portaria-busca-rapida").value.trim().toUpperCase();
-        if (!termo) return;
-        const p = participantesPortariaAtual.find(
-          (item) =>
-            item.protocolo.toUpperCase() === termo ||
-            item.cpf === limparCPF(termo) ||
-            item.nome_completo.toUpperCase().includes(termo)
-        );
-        if (!p) {
-          alert("Participante não localizado neste evento.");
-          return;
-        }
-        await registrarPresencaParticipante(p.id);
-        document.getElementById("portaria-busca-rapida").value = "";
-      }
-
-      async function registrarPresencaParticipante(participanteId) {
-        const eventoId = Number(document.getElementById("portaria-evento-select").value);
-        const ev = listaEventos.find((e) => e.id === eventoId);
-        const p = participantesPortariaAtual.find((x) => x.id === participanteId);
-        if (!p || !ev) return;
-
-        const novaQtd = (p.presencas_qtd || 0) + 1;
-        const atualizado = { ...p, presencas_qtd: novaQtd, presente: true };
-        const ficouApto = verificarAptidaoCertificado(atualizado, ev);
-
-        let enfileiradoAgora = p.certificado_enviado;
-        if (ficouApto && !p.certificado_enviado) {
-          await enfileirarEmail(
-            eventoId,
-            p.id,
-            "CERTIFICADO_LIBERADO",
-            p.email,
-            p.nome_completo,
-            `Certificado Disponível — ${ev.titulo}`,
-            {
-              nome_completo: p.nome_completo,
-              cpf: p.cpf,
-              orgao_instituicao: p.orgao_instituicao,
-              evento_titulo: ev.titulo,
-              data_evento: ev.data_evento,
-              carga_horaria: ev.carga_horaria,
-              codigo_certificado: p.codigo_certificado,
-            }
-          );
-          enfileiradoAgora = true;
-        }
-
-        await supabaseClient
-          .from("participantes_eventos_segov")
-          .update({
-            presente: true,
-            presencas_qtd: novaQtd,
-            checkin_em: new Date().toISOString(),
-            certificado_enviado: enfileiradoAgora,
-          })
-          .eq("id", participanteId);
-
-        carregarListaPortaria();
-      }
-
-      async function enfileirarCertificadosEmMassa() {
-        const eventoId = Number(document.getElementById("portaria-evento-select").value);
-        const ev = listaEventos.find((e) => e.id === eventoId);
-        if (!ev) return;
-
-        await supabaseClient.from("eventos_segov").update({ certificado_liberado: true }).eq("id", eventoId);
-
-        const aptosSemFila = participantesPortariaAtual.filter((p) => p.presente && !p.certificado_enviado);
-
-        for (const p of aptosSemFila) {
-          await enfileirarEmail(
-            eventoId,
-            p.id,
-            "CERTIFICADO_LIBERADO",
-            p.email,
-            p.nome_completo,
-            `Certificado Liberado — ${ev.titulo}`,
-            {
-              nome_completo: p.nome_completo,
-              cpf: p.cpf,
-              orgao_instituicao: p.orgao_instituicao,
-              evento_titulo: ev.titulo,
-              data_evento: ev.data_evento,
-              carga_horaria: ev.carga_horaria,
-              codigo_certificado: p.codigo_certificado,
-            }
-          );
-          await supabaseClient.from("participantes_eventos_segov").update({ certificado_enviado: true }).eq("id", p.id);
-        }
-
-        alert(`Certificados liberados! ${aptosSemFila.length} registro(s) enfileirado(s) para disparo em massa.`);
-        await carregarEventos();
-        carregarListaPortaria();
-      }
-
-      function exportarCSVEvento() {
-        const listaExportar = obterParticipantesFiltrados();
-        if (listaExportar.length === 0) {
-          alert("Não há participantes no filtro atual para exportar.");
-          return;
-        }
-        const linhas = [
-          ["Nome", "CPF", "Email", "Orgao", "Protocolo", "Status", "Presencas", "Codigo Certificado"],
-          ...listaExportar.map((p) => [
-            `"${p.nome_completo}"`,
-            p.cpf,
-            p.email,
-            `"${p.orgao_instituicao}"`,
-            p.protocolo,
-            p.presente ? "Presente" : "Ausente",
-            p.presencas_qtd,
-            p.codigo_certificado,
-          ]),
-        ];
-        const csv = "\uFEFF" + linhas.map((l) => l.join(";")).join("\n");
-        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-        const link = document.createElement("a");
-        link.href = URL.createObjectURL(blob);
-        link.download = `participantes_${filtroPortariaAtual.toLowerCase()}_sisgoveventos.csv`;
-        link.click();
-      }
-
-      function imprimirArea(elementId) {
-        document.querySelectorAll(".area-print-ativa").forEach((el) => el.classList.remove("area-print-ativa"));
-        const alvo = document.getElementById(elementId);
-        if (!alvo) return;
-        alvo.classList.add("area-print-ativa");
-        window.print();
-        setTimeout(() => alvo.classList.remove("area-print-ativa"), 500);
-      }
-
-      carregarEventos();
-    </script>
-  </body>
-</html>
+        filtro
